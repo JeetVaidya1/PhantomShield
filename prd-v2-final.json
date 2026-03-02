@@ -65,7 +65,7 @@
             "Test: different users have independent counters",
             "Logs rate limit hits to audit_log"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-004",
