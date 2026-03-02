@@ -9,7 +9,6 @@ interface Alias {
   alias_email: string;
   label: string;
   service_label: string | null;
-  forwarding_email: string;
   status: string;
   created_at: string;
 }
@@ -24,7 +23,6 @@ export default function AliasesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newService, setNewService] = useState('');
-  const [newForwarding, setNewForwarding] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Clipboard feedback
@@ -60,7 +58,7 @@ export default function AliasesPage() {
   }, [fetchAliases]);
 
   const handleCreate = async () => {
-    if (!newLabel.trim() || !newForwarding.trim()) return;
+    if (!newLabel.trim()) return;
     setCreating(true);
     setError(null);
     try {
@@ -69,14 +67,12 @@ export default function AliasesPage() {
         body: JSON.stringify({
           label: newLabel.trim(),
           service_label: newService.trim() || undefined,
-          forwarding_email: newForwarding.trim(),
         }),
       });
       if (res.ok) {
         setShowCreate(false);
         setNewLabel('');
         setNewService('');
-        setNewForwarding('');
         fetchAliases();
       } else {
         const data = await res.json();
@@ -290,22 +286,6 @@ export default function AliasesPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="alias-forwarding" className="block text-sm font-semibold text-phantom-text-secondary mb-1.5">
-                  Forward to
-                </label>
-                <input
-                  id="alias-forwarding"
-                  type="email"
-                  value={newForwarding}
-                  onChange={(e) => setNewForwarding(e.target.value)}
-                  placeholder="your-real-email@example.com"
-                  className="w-full rounded-lg bg-[#312E81] border border-phantom-border px-4 py-3 text-phantom-text-primary placeholder-phantom-text-muted/50 focus:outline-none focus:ring-2 focus:ring-phantom-accent focus:border-transparent transition-colors"
-                />
-                <p className="text-xs text-phantom-text-muted mt-1.5">
-                  Emails to this alias will be forwarded here (encrypted before storage)
-                </p>
-              </div>
             </div>
 
             <div className="flex items-center justify-between mt-8">
@@ -314,7 +294,6 @@ export default function AliasesPage() {
                   setShowCreate(false);
                   setNewLabel('');
                   setNewService('');
-                  setNewForwarding('');
                 }}
                 className="text-phantom-text-muted hover:text-phantom-text-secondary transition-colors px-4 py-2"
               >
@@ -322,7 +301,7 @@ export default function AliasesPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={creating || !newLabel.trim() || !newForwarding.trim()}
+                disabled={creating || !newLabel.trim()}
                 className="bg-phantom-accent hover:bg-phantom-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
               >
                 {creating && (

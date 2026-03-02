@@ -65,7 +65,6 @@ export async function POST(request: Request) {
         alias_email: aliasEmail,
         label: parsed.data.label,
         service_label: parsed.data.service_label || null,
-        forwarding_email: parsed.data.forwarding_email,
         is_honeypot: false,
         type: 'email',
         status: 'active',
