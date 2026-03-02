@@ -561,7 +561,7 @@
             "Overdue requests (past 30 days, still 'awaiting') highlighted in red",
             "Pull to refresh"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
