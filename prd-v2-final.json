@@ -506,7 +506,7 @@
             "Empty state: explains what honeypots are and how to use them",
             "Pull to refresh"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-026",
