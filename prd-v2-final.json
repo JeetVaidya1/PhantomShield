@@ -408,7 +408,7 @@
             "Test: ambiguous email calls AI and returns classification",
             "Test: summary is \u2264 20 words"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-021",
