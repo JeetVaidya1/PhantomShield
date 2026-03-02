@@ -644,7 +644,7 @@
             "Test: company with 100 aliases and 5 leaks \u2192 score 95",
             "Test: company with 3 aliases \u2192 insufficient_data"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-033",
