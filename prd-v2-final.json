@@ -527,7 +527,7 @@
             "Test: response_deadline is exactly 30 days after sent_at",
             "Test: can't update another user's request (RLS enforced)"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-027",
