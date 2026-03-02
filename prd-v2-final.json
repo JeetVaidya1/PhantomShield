@@ -342,7 +342,7 @@
             "Empty state: 'No trackers blocked yet. As you use your aliases, we'll show you who's tracking you.'",
             "Accessible: screen reader labels on all elements"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-018",
