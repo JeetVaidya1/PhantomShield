@@ -83,7 +83,7 @@
             "Test: missing headers returns false",
             "Test: expired timestamp returns false"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-005",
