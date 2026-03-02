@@ -83,6 +83,13 @@ export const serviceLabelSchema = z
   .pipe(z.string().min(1))
   .optional();
 
+// ---- Alias Creation ----
+export const aliasCreateSchema = z.object({
+  label: aliasLabelSchema,
+  service_label: serviceLabelSchema,
+  forwarding_email: z.string().min(1, 'Forwarding email is required').email('Invalid forwarding email'),
+});
+
 // ---- Leak Dismiss ----
 export const leakDismissSchema = z.object({
   id: z.string().uuid('Invalid leak detection ID'),

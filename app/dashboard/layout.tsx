@@ -7,7 +7,7 @@ import { ReactNode } from 'react';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { href: '/dashboard/honeypots', label: 'Aliases', icon: AliasIcon },
+  { href: '/dashboard/aliases', label: 'Aliases', icon: AliasIcon },
   { href: '/dashboard/phone', label: 'Phone', icon: PhoneIcon },
   { href: '/dashboard/gdpr', label: 'Privacy', icon: PrivacyIcon },
   { href: '/dashboard/export', label: 'Settings', icon: SettingsIcon },

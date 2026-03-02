@@ -350,6 +350,11 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <QuickLink
+              href="/dashboard/aliases"
+              label="My Aliases"
+              icon="&#9993;"
+            />
+            <QuickLink
               href="/dashboard/leaks"
               label="Leak Alerts"
               icon="&#128680;"
