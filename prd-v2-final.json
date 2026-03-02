@@ -323,7 +323,7 @@
             "Test: POST with invalid secret returns 401",
             "Test: GET returns correct aggregated stats for test data"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-017",
