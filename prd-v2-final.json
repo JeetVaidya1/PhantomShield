@@ -590,7 +590,7 @@
             "Test: identity with recent emails NOT flagged",
             "Test: kill removes identities and releases resources"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-030",
