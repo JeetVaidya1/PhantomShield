@@ -98,5 +98,37 @@ export const exportFormatSchema = z.object({
   format: z.enum(['json', 'csv']).default('json'),
 });
 
+// ---- Auth: Signup ----
+export const usernameSchema = z
+  .string()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be 30 characters or less')
+  .regex(
+    /^[a-zA-Z0-9_-]+$/,
+    'Username can only contain letters, numbers, hyphens, and underscores'
+  )
+  .transform((s) => s.toLowerCase());
+
+export const masterPasswordSchema = z
+  .string()
+  .min(8, 'Master password must be at least 8 characters')
+  .max(128, 'Master password must be 128 characters or less');
+
+export const signupSchema = z.object({
+  username: usernameSchema,
+  password: masterPasswordSchema,
+  encryption_salt: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, 'Invalid encryption salt'),
+  key_check: z
+    .string()
+    .min(1, 'Key check is required'),
+});
+
+export const loginSchema = z.object({
+  username: usernameSchema,
+  password: masterPasswordSchema,
+});
+
 // Re-export stripHtml for use in other modules
 export { stripHtml };
