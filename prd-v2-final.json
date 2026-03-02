@@ -490,7 +490,7 @@
             "Test: email to non-honeypot \u2192 forwarded normally",
             "Test: GET returns correct trigger counts"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-025",
