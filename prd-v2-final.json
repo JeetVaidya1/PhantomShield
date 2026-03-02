@@ -704,7 +704,7 @@
             "App resets to clean/logged-out state after nuke",
             "Emergency contact configurable in settings (stored in expo-secure-store)"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-036",
@@ -727,7 +727,7 @@
             "Test: export without biometric token returns 403",
             "Test: CSV format is valid and parseable"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-037",
@@ -742,7 +742,7 @@
             "CSV file opens in spreadsheet apps",
             "Error handling for large exports (timeout after 30s with retry option)"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-038",
