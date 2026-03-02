@@ -7,10 +7,16 @@ import { apiFetch } from '@/lib/api-client';
 interface Alias {
   id: string;
   alias_email: string;
-  label: string;
   service_label: string | null;
+  forwarding_email: string | null;
   status: string;
   created_at: string;
+}
+
+function parseServiceLabel(serviceLabel: string | null) {
+  if (!serviceLabel) return { label: 'Unnamed', service: '' };
+  const parts = serviceLabel.split(' — ');
+  return { label: parts[0] || serviceLabel, service: parts[1] || '' };
 }
 
 export default function AliasesPage() {
@@ -23,6 +29,7 @@ export default function AliasesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newService, setNewService] = useState('');
+  const [newForwarding, setNewForwarding] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Clipboard feedback
@@ -58,7 +65,7 @@ export default function AliasesPage() {
   }, [fetchAliases]);
 
   const handleCreate = async () => {
-    if (!newLabel.trim()) return;
+    if (!newLabel.trim() || !newForwarding.trim()) return;
     setCreating(true);
     setError(null);
     try {
@@ -67,12 +74,14 @@ export default function AliasesPage() {
         body: JSON.stringify({
           label: newLabel.trim(),
           service_label: newService.trim() || undefined,
+          forwarding_email: newForwarding.trim(),
         }),
       });
       if (res.ok) {
         setShowCreate(false);
         setNewLabel('');
         setNewService('');
+        setNewForwarding('');
         fetchAliases();
       } else {
         const data = await res.json();
@@ -181,7 +190,9 @@ export default function AliasesPage() {
 
       {/* Alias cards */}
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-        {aliases.map((alias) => (
+        {aliases.map((alias) => {
+          const { label, service } = parseServiceLabel(alias.service_label);
+          return (
           <div
             key={alias.id}
             className="bg-phantom-card hover:bg-phantom-card-hover rounded-xl p-4 transition-colors"
@@ -189,11 +200,11 @@ export default function AliasesPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-base font-semibold text-phantom-text-primary truncate">
-                  {alias.label}
+                  {label}
                 </p>
-                {alias.service_label && (
+                {service && (
                   <p className="text-sm text-phantom-text-muted mt-0.5">
-                    {alias.service_label}
+                    {service}
                   </p>
                 )}
               </div>
@@ -234,7 +245,8 @@ export default function AliasesPage() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
         {/* Add new button */}
         <button
@@ -286,6 +298,22 @@ export default function AliasesPage() {
                 />
               </div>
 
+              <div>
+                <label htmlFor="alias-forwarding" className="block text-sm font-semibold text-phantom-text-secondary mb-1.5">
+                  Forward to
+                </label>
+                <input
+                  id="alias-forwarding"
+                  type="email"
+                  value={newForwarding}
+                  onChange={(e) => setNewForwarding(e.target.value)}
+                  placeholder="your-real-email@example.com"
+                  className="w-full rounded-lg bg-[#312E81] border border-phantom-border px-4 py-3 text-phantom-text-primary placeholder-phantom-text-muted/50 focus:outline-none focus:ring-2 focus:ring-phantom-accent focus:border-transparent transition-colors"
+                />
+                <p className="text-xs text-phantom-text-muted mt-1.5">
+                  Emails to this alias will be forwarded here
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center justify-between mt-8">
@@ -294,6 +322,7 @@ export default function AliasesPage() {
                   setShowCreate(false);
                   setNewLabel('');
                   setNewService('');
+                  setNewForwarding('');
                 }}
                 className="text-phantom-text-muted hover:text-phantom-text-secondary transition-colors px-4 py-2"
               >
@@ -301,7 +330,7 @@ export default function AliasesPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={creating || !newLabel.trim()}
+                disabled={creating || !newLabel.trim() || !newForwarding.trim()}
                 className="bg-phantom-accent hover:bg-phantom-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
               >
                 {creating && (

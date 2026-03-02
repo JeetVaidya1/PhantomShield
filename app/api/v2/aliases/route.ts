@@ -58,13 +58,18 @@ export async function POST(request: Request) {
     // Generate random alias email
     const aliasEmail = crypto.randomBytes(8).toString('hex') + '@phantomdefender.com';
 
+    // Build service_label: "Label — Service" if service provided, else just label
+    const serviceLabel = parsed.data.service_label
+      ? `${parsed.data.label} — ${parsed.data.service_label}`
+      : parsed.data.label;
+
     const { data: identity, error } = await supabase
       .from('identities')
       .insert({
         user_id: auth.userId!,
         alias_email: aliasEmail,
-        label: parsed.data.label,
-        service_label: parsed.data.service_label || null,
+        service_label: serviceLabel,
+        forwarding_email: parsed.data.forwarding_email,
         is_honeypot: false,
         type: 'email',
         status: 'active',
@@ -81,7 +86,7 @@ export async function POST(request: Request) {
       action: 'alias_created',
       resourceType: 'identity',
       resourceId: identity.id,
-      metadata: { label: parsed.data.label, alias_email: aliasEmail },
+      metadata: { service_label: serviceLabel, alias_email: aliasEmail },
       request,
     });
 

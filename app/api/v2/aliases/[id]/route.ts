@@ -31,7 +31,7 @@ export async function DELETE(
       action: 'alias_deleted',
       resourceType: 'identity',
       resourceId: params.id,
-      metadata: { label: identity.label, alias_email: identity.alias_email },
+      metadata: { service_label: identity.service_label, alias_email: identity.alias_email },
       request,
     });
 
