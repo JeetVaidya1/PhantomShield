@@ -361,7 +361,7 @@
             "Test: email from email.netflix.com to Netflix-labeled alias \u2192 no leak",
             "Test: dismiss endpoint only works for own leak detections"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-019",
