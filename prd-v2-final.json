@@ -686,7 +686,7 @@
             "Test: nuke without biometric token returns 403",
             "Test: second nuke within 24 hours returns 429"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-035",
