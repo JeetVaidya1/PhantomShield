@@ -10,9 +10,9 @@ export async function GET(request: Request) {
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'trackers/stats',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const { data: logs, error } = await supabase
       .from('tracker_logs')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .gte('processed_at', thirtyDaysAgo.toISOString())
       .order('processed_at', { ascending: false });
 

@@ -11,9 +11,9 @@ export async function POST(request: Request) {
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'autopilot_scan',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const { data: identities, error: idError } = await supabase
       .from('identities')
       .select('id, alias_email, service_label, type, is_honeypot, status, created_at')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .eq('status', 'active');
 
     if (idError) {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const { data: scan, error: scanError } = await supabase
       .from('autopilot_scans')
       .insert({
-        user_id: auth.userId,
+        user_id: auth.userId!,
         stale_count: staleIdentities.length,
         total_scanned: (identities || []).filter((i) => !i.is_honeypot).length,
         stale_identities: staleIdentities,
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'autopilot_scan',
       resourceType: 'autopilot_scan',
       resourceId: scan.id,

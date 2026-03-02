@@ -13,9 +13,9 @@ export async function POST(request: Request) {
 
     // Rate limit: 5/day per user
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.honeypotCreation,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'honeypot_create',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const { data: identity, error } = await supabase
       .from('identities')
       .insert({
-        user_id: auth.userId,
+        user_id: auth.userId!,
         is_honeypot: true,
         service_label: parsed.data.planted_at_service,
         label: parsed.data.label,
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'honeypot_created',
       resourceType: 'identity',
       resourceId: identity.id,
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     const { data: honeypots, error } = await supabase
       .from('identities')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .eq('is_honeypot', true)
       .order('created_at', { ascending: false });
 

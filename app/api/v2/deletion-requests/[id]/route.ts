@@ -31,7 +31,7 @@ export async function PATCH(
       .from('deletion_requests')
       .update(updateData)
       .eq('id', params.id)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .select()
       .single();
 
@@ -40,7 +40,7 @@ export async function PATCH(
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'gdpr_request_updated',
       resourceType: 'deletion_request',
       resourceId: params.id,

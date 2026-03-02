@@ -10,9 +10,9 @@ export async function GET(request: Request) {
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'leaks',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('leak_detections')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .eq('dismissed', false)
       .order('detected_at', { ascending: false });
 

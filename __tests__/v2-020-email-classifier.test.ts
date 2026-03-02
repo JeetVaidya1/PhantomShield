@@ -33,7 +33,7 @@ describe('v2-020: Email classification and AI summary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    vi.stubEnv('EMAIL_WEBHOOK_SECRET', 'test-secret');
+    vi.stubEnv('WEBHOOK_SECRET', 'test-secret');
   });
 
   describe('classifyEmail', () => {

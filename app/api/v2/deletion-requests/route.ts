@@ -14,9 +14,9 @@ export async function POST(request: Request) {
 
     // Rate limit: 10/day per user
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.gdprSend,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'gdpr_send',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       .from('identities')
       .select('*')
       .eq('id', parsed.data.identity_id)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .single();
 
     if (!identity) {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const { data: deletionRequest, error } = await supabase
       .from('deletion_requests')
       .insert({
-        user_id: auth.userId,
+        user_id: auth.userId!,
         identity_id: parsed.data.identity_id,
         company_name: parsed.data.company_name,
         company_email: parsed.data.company_email,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'gdpr_request_sent',
       resourceType: 'deletion_request',
       resourceId: deletionRequest.id,
@@ -126,7 +126,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('deletion_requests')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .order('created_at', { ascending: false });
 
     if (error) {

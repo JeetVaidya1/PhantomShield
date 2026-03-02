@@ -20,9 +20,9 @@ export async function POST(request: Request) {
 
     // Rate limit: 1 per 24 hours
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.nuke,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'nuke',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const { data: identities, error: idError } = await supabase
       .from('identities')
       .select('id, alias_email, service_label, type, status')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .eq('status', 'active');
 
     if (idError) {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
         .from('identities')
         .update({ status: 'deactivated' })
         .eq('id', identity.id)
-        .eq('user_id', auth.userId);
+        .eq('user_id', auth.userId!);
 
       if (!error) {
         identitiesKilled++;
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         responseDeadline.setDate(responseDeadline.getDate() + 30);
 
         await supabase.from('deletion_requests').insert({
-          user_id: auth.userId,
+          user_id: auth.userId!,
           identity_id: identity.id,
           company_name: identity.service_label,
           company_email: contact.privacy_email,
@@ -111,11 +111,11 @@ export async function POST(request: Request) {
     await supabase
       .from('user_profiles')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('user_id', auth.userId);
+      .eq('user_id', auth.userId!);
 
     // Step 5: Log to audit_log (NOT deleted — retained for security)
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'emergency_nuke',
       resourceType: 'account',
       metadata: {

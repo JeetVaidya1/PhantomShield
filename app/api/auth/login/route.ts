@@ -43,16 +43,8 @@ export async function POST(request: Request) {
     });
 
     if (error || !data.session) {
-      // Log failed attempt (use a placeholder userId since we don't know the real one)
-      await logAudit({
-        userId: '00000000-0000-0000-0000-000000000000',
-        action: 'login_failed',
-        resourceType: 'auth',
-        metadata: { username },
-        success: false,
-        request,
-      });
-
+      // Skip audit log for failed logins — we don't have a valid user_id
+      // and the audit_log FK constraint requires a real auth.users reference
       return Response.json(
         { error: 'Invalid username or password' },
         { status: 401 }

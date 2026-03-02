@@ -16,9 +16,9 @@ export async function GET(request: Request) {
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'data_export',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -31,10 +31,10 @@ export async function GET(request: Request) {
 
     // Fetch all user data
     const [identitiesRes, trackersRes, leaksRes, gdprRes] = await Promise.all([
-      supabase.from('identities').select('id, alias_email, service_label, domain, type, status, is_honeypot, created_at').eq('user_id', auth.userId),
-      supabase.from('tracker_stats').select('*').eq('user_id', auth.userId),
-      supabase.from('leak_detections').select('*').eq('user_id', auth.userId),
-      supabase.from('deletion_requests').select('*').eq('user_id', auth.userId),
+      supabase.from('identities').select('id, alias_email, service_label, domain, type, status, is_honeypot, created_at').eq('user_id', auth.userId!),
+      supabase.from('tracker_stats').select('*').eq('user_id', auth.userId!),
+      supabase.from('leak_detections').select('*').eq('user_id', auth.userId!),
+      supabase.from('deletion_requests').select('*').eq('user_id', auth.userId!),
     ]);
 
     const identities = identitiesRes.data || [];
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 
     const exportData = {
       exported_at: new Date().toISOString(),
-      user_id: auth.userId,
+      user_id: auth.userId!,
       identities: identities.map((i) => ({
         alias_email: i.alias_email,
         service_label: i.service_label,
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     };
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'data_exported',
       resourceType: 'export',
       metadata: { format, identity_count: identities.length },

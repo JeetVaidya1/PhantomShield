@@ -13,9 +13,9 @@ export async function GET(
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'company_contacts_lookup',
     });
     const rlResponse = rateLimitResponse(rl);

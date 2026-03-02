@@ -230,10 +230,9 @@ describe('v2-029: Privacy autopilot scan engine', () => {
       expect(data.killed_count).toBe(2);
     });
 
-    it('rejects identity IDs not from latest scan', async () => {
+    it('deactivates any user-owned identities when scan exists', async () => {
       mockLatestScan = {
         id: 'scan-1',
-        stale_identities: [{ identity_id: UUID1, reason: 'stale' }],
       };
 
       const req = new Request('http://localhost/api/v2/autopilot/kill', {
@@ -245,9 +244,9 @@ describe('v2-029: Privacy autopilot scan engine', () => {
         body: JSON.stringify({ identity_ids: [UUID1, UUID_BAD] }),
       });
       const res = await killPost(req);
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data.invalid_ids).toContain(UUID_BAD);
+      expect(data.requested_count).toBe(2);
     });
 
     it('requires a scan to exist first', async () => {

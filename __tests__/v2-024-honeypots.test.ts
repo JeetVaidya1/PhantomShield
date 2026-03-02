@@ -85,7 +85,9 @@ describe('v2-024: Honeypot alias creation and trigger detection', () => {
       expect(mockInsertIdentity).toHaveBeenCalledWith(
         expect.objectContaining({
           is_honeypot: true,
-          service_label: 'Sketchy Forum',
+          service_label: 'Test Trap — Sketchy Forum',
+          type: 'email',
+          status: 'active',
         })
       );
     });

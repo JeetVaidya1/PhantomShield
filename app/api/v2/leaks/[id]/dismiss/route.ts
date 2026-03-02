@@ -19,7 +19,7 @@ export async function PATCH(
       .from('leak_detections')
       .update({ dismissed: true })
       .eq('id', params.id)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .select()
       .single();
 
@@ -28,7 +28,7 @@ export async function PATCH(
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'leak_dismissed',
       resourceType: 'leak_detection',
       resourceId: params.id,

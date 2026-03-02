@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('autopilot_scans')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

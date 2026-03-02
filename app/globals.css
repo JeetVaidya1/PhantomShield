@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background-color: #0F0D23;
+  color: #E0E7FF;
+  min-height: 100vh;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F0D23;
+}
+::-webkit-scrollbar-thumb {
+  background: #312E81;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6366F1;
+}
+
+/* Mobile-first bottom safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

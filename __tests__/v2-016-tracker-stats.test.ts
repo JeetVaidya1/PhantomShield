@@ -47,7 +47,7 @@ describe('v2-016: Tracker stats API', () => {
   beforeEach(() => {
     trackerLogs = [];
     vi.clearAllMocks();
-    vi.stubEnv('TRACKER_WEBHOOK_SECRET', 'test-secret');
+    vi.stubEnv('WEBHOOK_SECRET', 'test-secret');
   });
 
   describe('POST /api/webhooks/tracker-log', () => {

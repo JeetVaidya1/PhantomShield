@@ -16,9 +16,9 @@ export async function POST(request: Request) {
     }
 
     const rl = await checkRateLimit({
-      key: auth.userId,
+      key: auth.userId!,
       config: RATE_LIMITS.api,
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'autopilot_kill',
     });
     const rlResponse = rateLimitResponse(rl);
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     const { data: latestScan } = await supabase
       .from('autopilot_scans')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.userId!)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         .from('identities')
         .update({ status: 'deactivated' })
         .eq('id', identityId)
-        .eq('user_id', auth.userId);
+        .eq('user_id', auth.userId!);
 
       if (!error) {
         killedCount++;
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     await logAudit({
-      userId: auth.userId,
+      userId: auth.userId!,
       action: 'autopilot_kill',
       resourceType: 'identities',
       metadata: {
