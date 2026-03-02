@@ -658,7 +658,7 @@
             "Score refreshes on pull-to-refresh",
             "Does not block alias creation if score lookup fails"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
