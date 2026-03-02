@@ -102,7 +102,7 @@
             "Test: invalid phone number '+abc' fails validation",
             "Test: valid inputs pass all schemas"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
