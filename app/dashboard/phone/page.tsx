@@ -294,7 +294,7 @@ export default function PhonePage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Buy Number
+                Get Number
               </button>
             )}
           </div>
@@ -346,13 +346,13 @@ export default function PhonePage() {
             </div>
             <h2 className="text-lg font-bold text-[#e2e8f0] mb-2">No Burner Numbers Yet</h2>
             <p className="text-sm text-[#94a3b8] mb-6 max-w-sm mx-auto">
-              Buy a receive-only number to start getting OTPs and SMS without exposing your real number.
+              Get a receive-only number to start getting OTPs and SMS without exposing your real number.
             </p>
             <button
               onClick={() => setShowBuyModal(true)}
               className="bg-[#6366f1] hover:bg-[#5558e6] text-white font-semibold px-6 py-3 rounded-lg transition-colors"
             >
-              Buy Phone Number
+              Get Phone Number
             </button>
           </div>
         )}
@@ -506,7 +506,7 @@ export default function PhonePage() {
         </p>
       </div>
 
-      {/* Buy Number Modal */}
+      {/* Get Number Modal */}
       {showBuyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -514,9 +514,9 @@ export default function PhonePage() {
             onClick={() => { if (!buying) setShowBuyModal(false); }}
           />
           <div className="relative bg-[#111827] border border-[#1f2937] rounded-xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="text-lg font-bold text-[#e2e8f0] mb-1">Buy Phone Number</h2>
+            <h2 className="text-lg font-bold text-[#e2e8f0] mb-1">Get Phone Number</h2>
             <p className="text-sm text-[#64748b] mb-6">
-              Provision a new US receive-only number. You can have up to 2 active numbers.
+              Your Pro plan includes up to 2 receive-only US numbers.
             </p>
 
             <div className="bg-[#0a0e17] border border-[#1f2937] rounded-lg px-4 py-3 mb-6">
@@ -545,7 +545,7 @@ export default function PhonePage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 )}
-                {buying ? 'Provisioning...' : 'Buy Number'}
+                {buying ? 'Provisioning...' : 'Get Number'}
               </button>
             </div>
           </div>
