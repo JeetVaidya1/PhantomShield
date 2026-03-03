@@ -142,6 +142,9 @@ export default function PhonePage() {
   const [error, setError] = useState<string | null>(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<'US' | 'CA'>('US');
+  const [phoneAddonCount, setPhoneAddonCount] = useState(0);
+  const [maxPhones, setMaxPhones] = useState(1);
+  const [cooldownExpires, setCooldownExpires] = useState<string | null>(null);
 
   /* ---------- data fetching ---------- */
   const fetchPhones = useCallback(async () => {
@@ -153,6 +156,9 @@ export default function PhonePage() {
       }
       const data = await res.json();
       setPhones(data.phones || []);
+      setPhoneAddonCount(data.phone_addon_count ?? 0);
+      setMaxPhones(data.max_phones ?? 1);
+      setCooldownExpires(data.cooldown_expires ?? null);
     } catch {
       setError('Failed to load phone numbers');
     }
@@ -217,7 +223,7 @@ export default function PhonePage() {
   };
 
   const handleRelease = async (phoneId: string) => {
-    if (!confirm('Release this number? You will stop receiving messages.')) return;
+    if (!confirm('Release this number? This is permanent — you will stop receiving messages and cannot get a new number for 15 days.')) return;
     setReleasing(phoneId);
     setError(null);
     try {
@@ -287,17 +293,42 @@ export default function PhonePage() {
               <h1 className="text-2xl font-bold text-[#e2e8f0]">Phone Numbers</h1>
               <p className="text-sm text-[#64748b] mt-1">Receive-only burner numbers</p>
             </div>
-            {activePhones.length < 2 && (
-              <button
-                onClick={() => setShowBuyModal(true)}
-                className="bg-[#6366f1] hover:bg-[#5558e6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Get Number
-              </button>
-            )}
+            {(() => {
+              const isCooldownActive = cooldownExpires && new Date(cooldownExpires) > new Date();
+              const atLimit = activePhones.length >= maxPhones;
+
+              if (isCooldownActive) {
+                const daysLeft = Math.ceil((new Date(cooldownExpires).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                return (
+                  <span className="text-xs text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-2 rounded-lg">
+                    New number in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                  </span>
+                );
+              }
+
+              if (atLimit) {
+                return (
+                  <Link
+                    href="/dashboard/upgrade"
+                    className="text-xs text-[#6366f1] hover:text-[#818cf8] font-semibold transition-colors"
+                  >
+                    Need more numbers?
+                  </Link>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => setShowBuyModal(true)}
+                  className="bg-[#6366f1] hover:bg-[#5558e6] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Get Number
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -517,7 +548,7 @@ export default function PhonePage() {
           <div className="relative bg-[#111827] border border-[#1f2937] rounded-xl p-6 w-full max-w-sm shadow-2xl">
             <h2 className="text-lg font-bold text-[#e2e8f0] mb-1">Get Phone Number</h2>
             <p className="text-sm text-[#64748b] mb-6">
-              Your Pro plan includes up to 2 receive-only numbers.
+              Your Pro plan includes 1 receive-only number.{phoneAddonCount > 0 ? ` You have ${phoneAddonCount} addon${phoneAddonCount > 1 ? 's' : ''}.` : ''}
             </p>
 
             <div className="bg-[#0a0e17] border border-[#1f2937] rounded-lg px-4 py-3 mb-6">

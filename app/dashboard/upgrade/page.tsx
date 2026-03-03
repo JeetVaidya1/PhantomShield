@@ -15,7 +15,7 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   '15 email aliases',
-  '2 burner phone numbers',
+  '1 burner phone number',
   'AI email summaries',
   'Honeypot aliases',
   'Privacy autopilot',
@@ -27,7 +27,7 @@ const ADDONS = [
   {
     id: 'extra_phone' as const,
     name: 'Extra Phone Number',
-    price: '$2.99/mo',
+    price: '$2.79/mo',
     description: 'Add another burner phone number for receiving SMS & OTPs',
   },
   {

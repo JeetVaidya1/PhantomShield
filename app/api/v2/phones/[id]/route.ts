@@ -36,9 +36,15 @@ export async function DELETE(
       }
     }
 
+    // Delete all SMS messages for this number
+    await supabase
+      .from('sms_messages')
+      .delete()
+      .eq('identity_id', params.id);
+
     await supabase
       .from('identities')
-      .update({ status: 'killed' })
+      .update({ status: 'killed', released_at: new Date().toISOString() })
       .eq('id', params.id);
 
     await logAudit({

@@ -3,7 +3,8 @@ import { getAuthUser } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabase';
 import { logAudit } from '@/lib/audit';
 
-const MAX_PHONES_PRO = 2;
+const INCLUDED_PHONES_PRO = 1;
+const COOLDOWN_DAYS = 15;
 const SUPPORTED_COUNTRIES = ['US', 'CA'] as const;
 type CountryCode = typeof SUPPORTED_COUNTRIES[number];
 
@@ -17,23 +18,47 @@ export async function GET(request: Request) {
     if (auth.error) return Response.json({ error: auth.error }, { status: 401 });
 
     const supabase = getSupabaseServiceClient();
-    const { data, error } = await supabase
-      .from('identities')
-      .select('id, alias_email, phone_provider_sid, status, created_at, type')
-      .eq('user_id', auth.userId!)
-      .eq('type', 'phone')
-      .order('created_at', { ascending: false });
 
-    if (error) return Response.json({ error: 'Failed to fetch phones' }, { status: 500 });
+    // Fetch phones and user settings in parallel
+    const [phonesResult, settingsResult] = await Promise.all([
+      supabase
+        .from('identities')
+        .select('id, alias_email, phone_provider_sid, status, created_at, type, released_at')
+        .eq('user_id', auth.userId!)
+        .eq('type', 'phone')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('user_settings')
+        .select('phone_addon_count')
+        .eq('user_id', auth.userId!)
+        .single(),
+    ]);
 
-    const phones = (data || []).map((p) => ({
+    if (phonesResult.error) return Response.json({ error: 'Failed to fetch phones' }, { status: 500 });
+
+    const addonCount = settingsResult.data?.phone_addon_count ?? 0;
+
+    const phones = (phonesResult.data || []).map((p) => ({
       id: p.id,
       phone_number: p.alias_email, // stored in alias_email for phone type
       status: p.status,
       created_at: p.created_at,
+      released_at: p.released_at,
     }));
 
-    return Response.json({ phones });
+    // Find most recent release within cooldown window
+    const cooldownCutoff = new Date(Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const recentRelease = phones.find((p) => p.released_at && p.released_at > cooldownCutoff);
+    const cooldownExpires = recentRelease?.released_at
+      ? new Date(new Date(recentRelease.released_at).getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    return Response.json({
+      phones,
+      phone_addon_count: addonCount,
+      max_phones: INCLUDED_PHONES_PRO + addonCount,
+      cooldown_expires: cooldownExpires,
+    });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -46,16 +71,19 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseServiceClient();
 
-    // Check plan tier
+    // Check plan tier + addon count
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('plan_tier')
+      .select('plan_tier, phone_addon_count')
       .eq('user_id', auth.userId!)
       .single();
 
     if (!settings || settings.plan_tier !== 'pro') {
       return Response.json({ error: 'Phone numbers require a Pro plan' }, { status: 403 });
     }
+
+    const addonCount = settings.phone_addon_count ?? 0;
+    const maxPhones = INCLUDED_PHONES_PRO + addonCount;
 
     // Check limit
     const { count } = await supabase
@@ -65,8 +93,31 @@ export async function POST(request: Request) {
       .eq('type', 'phone')
       .eq('status', 'active');
 
-    if ((count ?? 0) >= MAX_PHONES_PRO) {
-      return Response.json({ error: `Pro plan limited to ${MAX_PHONES_PRO} phone numbers` }, { status: 403 });
+    if ((count ?? 0) >= maxPhones) {
+      return Response.json(
+        { error: `You've reached your limit of ${maxPhones} phone number${maxPhones === 1 ? '' : 's'}. Purchase an addon for more.` },
+        { status: 403 }
+      );
+    }
+
+    // Check 15-day cooldown after releasing a number
+    const cooldownCutoff = new Date(Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentRelease } = await supabase
+      .from('identities')
+      .select('released_at')
+      .eq('user_id', auth.userId!)
+      .eq('type', 'phone')
+      .gt('released_at', cooldownCutoff)
+      .order('released_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (recentRelease?.released_at) {
+      const cooldownExpiry = new Date(new Date(recentRelease.released_at).getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+      return Response.json(
+        { error: 'Cooldown active after releasing a number', cooldown_expires: cooldownExpiry.toISOString() },
+        { status: 403 }
+      );
     }
 
     // Parse country code from request body

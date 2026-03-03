@@ -29,7 +29,23 @@ export async function POST(request: Request) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.user_id;
-      if (userId) {
+      const addonType = session.metadata?.addon_type;
+
+      if (userId && addonType === 'extra_phone') {
+        // Addon purchase: increment phone_addon_count
+        const { data: current } = await supabase
+          .from('user_settings')
+          .select('phone_addon_count')
+          .eq('user_id', userId)
+          .single();
+
+        const currentCount = current?.phone_addon_count ?? 0;
+        await supabase
+          .from('user_settings')
+          .update({ phone_addon_count: currentCount + 1 })
+          .eq('user_id', userId);
+      } else if (userId) {
+        // Regular Pro checkout
         await supabase
           .from('user_settings')
           .upsert(
@@ -47,19 +63,30 @@ export async function POST(request: Request) {
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = String(subscription.customer);
+      const isAddon = subscription.metadata?.addon_type === 'extra_phone';
 
-      // Find user by stripe customer ID and downgrade
+      // Find user by stripe customer ID
       const { data: settings } = await supabase
         .from('user_settings')
-        .select('user_id')
+        .select('user_id, phone_addon_count')
         .eq('stripe_customer_id', customerId)
         .single();
 
       if (settings) {
-        await supabase
-          .from('user_settings')
-          .update({ plan_tier: 'free' })
-          .eq('user_id', settings.user_id);
+        if (isAddon) {
+          // Addon cancellation: decrement phone_addon_count (min 0)
+          const newCount = Math.max(0, (settings.phone_addon_count ?? 0) - 1);
+          await supabase
+            .from('user_settings')
+            .update({ phone_addon_count: newCount })
+            .eq('user_id', settings.user_id);
+        } else {
+          // Main Pro subscription cancellation: downgrade to free
+          await supabase
+            .from('user_settings')
+            .update({ plan_tier: 'free' })
+            .eq('user_id', settings.user_id);
+        }
       }
       break;
     }
