@@ -177,21 +177,68 @@ const NAV_LINKS = [
   { label: 'CONTACT', href: '#footer' },
 ];
 
-// --- SVG circuit-board background pattern ---
-function CircuitPattern({ className }: { className?: string }) {
+// --- Persistent tech lines running down both sides of the page ---
+function TechLines() {
   return (
-    <svg className={`absolute pointer-events-none opacity-[0.03] ${className || ''}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="circuit" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-          <path d="M10 10h80v0M50 10v30M50 40h30M80 40v30M80 70h10M10 50h30M10 50v40M10 90h40M50 90v10" fill="none" stroke={CYAN} strokeWidth="0.5" />
-          <circle cx="50" cy="40" r="2" fill={CYAN} />
-          <circle cx="10" cy="50" r="2" fill={CYAN} />
-          <circle cx="80" cy="70" r="2" fill={CYAN} />
-          <circle cx="50" cy="90" r="2" fill={CYAN} />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#circuit)" />
-    </svg>
+    <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+      {/* Left side lines */}
+      <svg className="absolute left-4 sm:left-8 lg:left-16 top-0 w-[60px] h-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        {/* Main vertical line */}
+        <line x1="20" y1="0" x2="20" y2="100%" stroke={CYAN} strokeWidth="0.5" />
+        {/* Secondary vertical line */}
+        <line x1="40" y1="0" x2="40" y2="100%" stroke={CYAN} strokeWidth="0.3" strokeDasharray="8 20" />
+        {/* Horizontal branches every ~200px */}
+        {Array.from({ length: 30 }).map((_, i) => (
+          <g key={`l${i}`}>
+            <line x1="20" y1={i * 200 + 80} x2="55" y2={i * 200 + 80} stroke={CYAN} strokeWidth="0.5" />
+            <circle cx="20" cy={i * 200 + 80} r="2" fill={CYAN} />
+            <circle cx="55" cy={i * 200 + 80} r="1.5" fill={CYAN} />
+            {i % 2 === 0 && (
+              <>
+                <line x1="20" y1={i * 200 + 140} x2="10" y2={i * 200 + 140} stroke={CYAN} strokeWidth="0.5" />
+                <line x1="10" y1={i * 200 + 140} x2="10" y2={i * 200 + 180} stroke={CYAN} strokeWidth="0.5" />
+                <circle cx="10" cy={i * 200 + 180} r="1.5" fill={CYAN} />
+              </>
+            )}
+            {i % 3 === 0 && (
+              <>
+                <line x1="40" y1={i * 200 + 50} x2="55" y2={i * 200 + 50} stroke={CYAN} strokeWidth="0.3" />
+                <rect x="52" y={i * 200 + 47} width="6" height="6" fill="none" stroke={CYAN} strokeWidth="0.5" />
+              </>
+            )}
+          </g>
+        ))}
+      </svg>
+
+      {/* Right side lines */}
+      <svg className="absolute right-4 sm:right-8 lg:right-16 top-0 w-[60px] h-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        {/* Main vertical line */}
+        <line x1="40" y1="0" x2="40" y2="100%" stroke={CYAN} strokeWidth="0.5" />
+        {/* Secondary vertical line */}
+        <line x1="20" y1="0" x2="20" y2="100%" stroke={CYAN} strokeWidth="0.3" strokeDasharray="12 25" />
+        {/* Horizontal branches offset from left */}
+        {Array.from({ length: 30 }).map((_, i) => (
+          <g key={`r${i}`}>
+            <line x1="5" y1={i * 200 + 120} x2="40" y2={i * 200 + 120} stroke={CYAN} strokeWidth="0.5" />
+            <circle cx="40" cy={i * 200 + 120} r="2" fill={CYAN} />
+            <circle cx="5" cy={i * 200 + 120} r="1.5" fill={CYAN} />
+            {i % 2 === 1 && (
+              <>
+                <line x1="40" y1={i * 200 + 60} x2="50" y2={i * 200 + 60} stroke={CYAN} strokeWidth="0.5" />
+                <line x1="50" y1={i * 200 + 60} x2="50" y2={i * 200 + 20} stroke={CYAN} strokeWidth="0.5" />
+                <circle cx="50" cy={i * 200 + 20} r="1.5" fill={CYAN} />
+              </>
+            )}
+            {i % 3 === 1 && (
+              <>
+                <line x1="20" y1={i * 200 + 170} x2="5" y2={i * 200 + 170} stroke={CYAN} strokeWidth="0.3" />
+                <rect x="1" y={i * 200 + 167} width="6" height="6" fill="none" stroke={CYAN} strokeWidth="0.5" />
+              </>
+            )}
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 }
 
@@ -214,7 +261,8 @@ export default function LandingPage() {
   const compFade = useFadeIn();
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-[#e2e8f0]">
+    <div className="min-h-screen bg-[#0a0e17] text-[#e2e8f0] relative">
+      <TechLines />
       {/* ========== NAVIGATION ========== */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -299,7 +347,6 @@ export default function LandingPage() {
 
       {/* ========== HOW IT WORKS ========== */}
       <section id="how-it-works" className="relative py-24 sm:py-32 overflow-hidden">
-        <CircuitPattern className="inset-0" />
         <div ref={howFade.ref} className={howFade.className}>
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
@@ -328,7 +375,6 @@ export default function LandingPage() {
       <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
         {/* Subtle radial glow from center */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.04)_0%,_transparent_70%)]" />
-        <CircuitPattern className="inset-0" />
         <div ref={featureFade.ref} className={featureFade.className}>
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
@@ -359,7 +405,6 @@ export default function LandingPage() {
 
       {/* ========== PRICING ========== */}
       <section id="pricing" className="relative py-24 sm:py-32 overflow-hidden">
-        <CircuitPattern className="inset-0" />
         <div ref={pricingFade.ref} className={pricingFade.className}>
           <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
@@ -450,7 +495,6 @@ export default function LandingPage() {
       {/* ========== COMPETITIVE COMPARISON ========== */}
       <section className="relative py-24 sm:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.03)_0%,_transparent_60%)]" />
-        <CircuitPattern className="inset-0" />
         <div ref={compFade.ref} className={compFade.className}>
           <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
