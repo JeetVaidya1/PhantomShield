@@ -222,9 +222,7 @@ export default function LandingPage() {
           style={{ backgroundImage: 'url(/hero-bg.png)' }}
         />
         {/* Dark gradient overlay — bottom fade into #0a0e17 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/60 to-transparent" />
-        {/* Fallback dark overlay for readability */}
-        <div className="absolute inset-0 bg-[#0a0e17]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/40 to-[#0a0e17]/10" />
 
         {/* Hero content — positioned in the lower third */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 pb-16 sm:pb-24 text-center">
