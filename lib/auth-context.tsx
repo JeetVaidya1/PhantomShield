@@ -58,13 +58,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [loaded, setLoaded] = useState(false);
 
+  const fetchPlanTier = useCallback(async (token: string): Promise<'free' | 'pro'> => {
+    try {
+      const res = await fetch('/api/v2/settings', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.plan_tier === 'pro' ? 'pro' : 'free';
+      }
+    } catch {}
+    return 'free';
+  }, []);
+
   useEffect(() => {
     const stored = loadAuth();
     if (stored?.token) {
       setState((prev) => ({ ...prev, ...stored } as AuthState));
+      // Refresh plan tier from server
+      fetchPlanTier(stored.token).then((tier) => {
+        setState((prev) => {
+          const updated = { ...prev, planTier: tier };
+          saveAuth(updated);
+          return updated;
+        });
+      });
     }
     setLoaded(true);
-  }, []);
+  }, [fetchPlanTier]);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await fetch('/api/auth/login', {
@@ -75,17 +96,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed');
 
+    const planTier = await fetchPlanTier(data.session.access_token);
     const newState: AuthState = {
       token: data.session.access_token,
       refreshToken: data.session.refresh_token,
       userId: data.user.id,
       username: data.user.username,
       encryptionSalt: data.user.encryption_salt,
-      planTier: 'free', // Will be fetched from user_settings
+      planTier,
     };
     setState(newState);
     saveAuth(newState);
-  }, []);
+  }, [fetchPlanTier]);
 
   const signup = useCallback(async (username: string, password: string) => {
     const saltArray = new Uint8Array(32);
@@ -108,13 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error(data.error || 'Signup failed');
 
     if (data.session) {
+      const planTier = await fetchPlanTier(data.session.access_token);
       const newState: AuthState = {
         token: data.session.access_token,
         refreshToken: data.session.refresh_token,
         userId: data.user.id,
         username: data.user.username,
         encryptionSalt,
-        planTier: 'free',
+        planTier,
       };
       setState(newState);
       saveAuth(newState);
