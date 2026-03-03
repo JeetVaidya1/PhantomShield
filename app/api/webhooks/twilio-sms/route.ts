@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     // Verify Twilio signature
     const twilioSignature = request.headers.get('x-twilio-signature') || '';
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://phantom-shield.vercel.app'}/api/webhooks/twilio-sms`;
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://phantom-shield-theta.vercel.app'}/api/webhooks/twilio-sms`;
 
     if (!verifyTwilioSignature(webhookUrl, params, twilioSignature)) {
       console.warn('[twilio-sms] Invalid signature');

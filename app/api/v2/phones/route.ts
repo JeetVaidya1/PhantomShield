@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
     const purchased = await client.incomingPhoneNumbers.create({
       phoneNumber: available[0].phoneNumber,
-      smsUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://phantom-shield.vercel.app'}/api/webhooks/twilio-sms`,
+      smsUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://phantom-shield-theta.vercel.app'}/api/webhooks/twilio-sms`,
       smsMethod: 'POST',
     });
 
