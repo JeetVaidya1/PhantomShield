@@ -182,7 +182,7 @@ function TechLines() {
   return (
     <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
       {/* Left side lines */}
-      <svg className="absolute left-4 sm:left-8 lg:left-16 top-0 w-[60px] h-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg className="absolute left-4 sm:left-8 lg:left-16 top-0 w-[60px] h-full opacity-[0.45]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         {/* Main vertical line */}
         <line x1="20" y1="0" x2="20" y2="100%" stroke={CYAN} strokeWidth="0.5" />
         {/* Secondary vertical line */}
@@ -211,7 +211,7 @@ function TechLines() {
       </svg>
 
       {/* Right side lines */}
-      <svg className="absolute right-4 sm:right-8 lg:right-16 top-0 w-[60px] h-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg className="absolute right-4 sm:right-8 lg:right-16 top-0 w-[60px] h-full opacity-[0.45]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         {/* Main vertical line */}
         <line x1="40" y1="0" x2="40" y2="100%" stroke={CYAN} strokeWidth="0.5" />
         {/* Secondary vertical line */}
