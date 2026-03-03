@@ -4,6 +4,8 @@ import { getSupabaseServiceClient } from '@/lib/supabase';
 import { logAudit } from '@/lib/audit';
 
 const MAX_PHONES_PRO = 2;
+const SUPPORTED_COUNTRIES = ['US', 'CA'] as const;
+type CountryCode = typeof SUPPORTED_COUNTRIES[number];
 
 function getTwilioClient() {
   return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
@@ -67,11 +69,22 @@ export async function POST(request: Request) {
       return Response.json({ error: `Pro plan limited to ${MAX_PHONES_PRO} phone numbers` }, { status: 403 });
     }
 
+    // Parse country code from request body
+    let countryCode: CountryCode = 'US';
+    try {
+      const body = await request.json();
+      if (body.country_code && SUPPORTED_COUNTRIES.includes(body.country_code)) {
+        countryCode = body.country_code;
+      }
+    } catch {
+      // Default to US if no body
+    }
+
     // Provision from Twilio
     const client = getTwilioClient();
-    const available = await client.availablePhoneNumbers('US').local.list({ limit: 1, smsEnabled: true });
+    const available = await client.availablePhoneNumbers(countryCode).local.list({ limit: 1, smsEnabled: true });
     if (available.length === 0) {
-      return Response.json({ error: 'No numbers available. Try again shortly.' }, { status: 503 });
+      return Response.json({ error: `No numbers available for ${countryCode}. Try again shortly.` }, { status: 503 });
     }
 
     const purchased = await client.incomingPhoneNumbers.create({

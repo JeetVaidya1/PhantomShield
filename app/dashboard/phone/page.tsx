@@ -141,6 +141,7 @@ export default function PhonePage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<'US' | 'CA'>('US');
 
   /* ---------- data fetching ---------- */
   const fetchPhones = useCallback(async () => {
@@ -199,7 +200,7 @@ export default function PhonePage() {
     try {
       const res = await apiFetch('/api/v2/phones', {
         method: 'POST',
-        body: JSON.stringify({ country_code: 'US' }),
+        body: JSON.stringify({ country_code: selectedCountry }),
       });
       if (res.ok) {
         setShowBuyModal(false);
@@ -516,13 +517,20 @@ export default function PhonePage() {
           <div className="relative bg-[#111827] border border-[#1f2937] rounded-xl p-6 w-full max-w-sm shadow-2xl">
             <h2 className="text-lg font-bold text-[#e2e8f0] mb-1">Get Phone Number</h2>
             <p className="text-sm text-[#64748b] mb-6">
-              Your Pro plan includes up to 2 receive-only US numbers.
+              Your Pro plan includes up to 2 receive-only numbers.
             </p>
 
             <div className="bg-[#0a0e17] border border-[#1f2937] rounded-lg px-4 py-3 mb-6">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[#94a3b8]">Country</span>
-                <span className="text-sm font-medium text-[#e2e8f0]">United States (+1)</span>
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => setSelectedCountry(e.target.value as 'US' | 'CA')}
+                  className="bg-transparent text-sm font-medium text-[#e2e8f0] border-none outline-none cursor-pointer"
+                >
+                  <option value="US" className="bg-[#111827]">United States (+1)</option>
+                  <option value="CA" className="bg-[#111827]">Canada (+1)</option>
+                </select>
               </div>
             </div>
 

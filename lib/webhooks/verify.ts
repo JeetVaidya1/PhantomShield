@@ -1,6 +1,28 @@
 import crypto from 'crypto';
+import twilio from 'twilio';
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Verify Twilio webhook signature using X-Twilio-Signature header.
+ * Uses the official Twilio validateRequest method.
+ */
+export function verifyTwilioSignature(
+  url: string,
+  params: Record<string, string>,
+  twilioSignature: string
+): boolean {
+  try {
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!authToken || !twilioSignature) {
+      return false;
+    }
+
+    return twilio.validateRequest(authToken, twilioSignature, url, params);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Verify Telnyx webhook signature using ed25519.
