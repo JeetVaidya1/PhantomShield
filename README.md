@@ -8,6 +8,17 @@ Built with zero-knowledge encryption. We couldn't read your data even if we want
 
 ---
 
+## At a glance
+
+- **Zero-knowledge architecture** — AES-256-GCM client-side encryption, PBKDF2 with 600K iterations. Server stores encrypted blobs and never sees plaintext.
+- **Full stack** — Next.js 14, Supabase (PostgreSQL + RLS), Stripe, Cloudflare Email Routing, Twilio, OpenAI `gpt-4o-mini`.
+- **280 passing tests** across auth, payments, email routing, and encryption paths.
+- **42 API routes**, 15 database tables, 20 Row Level Security policies.
+- **Built solo** on a 3-agent CI pipeline: a feature-builder writes, a security-auditor reviews, a test-runner gates merges.
+- **~99% gross margin** on the no-phone plan at the $9.99 price point (see Unit Economics below).
+
+---
+
 ## Why Phantom Defender?
 
 Every time you sign up for a service, you hand over your real email and phone number. Companies sell that data, track your every open, and leak it in breaches. Existing solutions like Apple's Hide My Email or SimpleLogin create aliases — but that's where they stop. They're pipes. They don't tell you what's happening on the other end.
