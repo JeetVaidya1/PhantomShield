@@ -11,7 +11,8 @@ interface DashboardStats {
   activeAliases: number;
   trackersBlocked: number;
   leaksDetected: number;
-  privacyScore: number;
+  // null = not enough data yet (shown as "—"); never a fabricated constant.
+  privacyScore: number | null;
 }
 
 // --- Navigation Items ---
@@ -142,7 +143,19 @@ function TopStatsBar({ stats }: { stats: DashboardStats }) {
       <div className="w-px h-4 bg-[#1f2937] shrink-0" />
       <StatPill label="LEAKS DETECTED" value={stats.leaksDetected} color={stats.leaksDetected > 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'} />
       <div className="w-px h-4 bg-[#1f2937] shrink-0" />
-      <StatPill label="PRIVACY SCORE" value={`${stats.privacyScore}/100`} color={stats.privacyScore >= 70 ? 'text-[#22c55e]' : stats.privacyScore >= 40 ? 'text-[#f59e0b]' : 'text-[#ef4444]'} />
+      <StatPill
+        label="PRIVACY SCORE"
+        value={stats.privacyScore === null ? '—' : `${stats.privacyScore}/100`}
+        color={
+          stats.privacyScore === null
+            ? 'text-[#64748b]'
+            : stats.privacyScore >= 70
+            ? 'text-[#22c55e]'
+            : stats.privacyScore >= 40
+            ? 'text-[#f59e0b]'
+            : 'text-[#ef4444]'
+        }
+      />
     </div>
   );
 }
@@ -161,7 +174,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
   const { username, planTier, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats>({ activeAliases: 0, trackersBlocked: 0, leaksDetected: 0, privacyScore: 78 });
+  const [stats, setStats] = useState<DashboardStats>({ activeAliases: 0, trackersBlocked: 0, leaksDetected: 0, privacyScore: null });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
@@ -175,11 +188,16 @@ function DashboardShell({ children }: { children: ReactNode }) {
       const trackers = statsRes.ok ? await statsRes.json() : { total_trackers_blocked: 0 };
       const leaks = leaksRes.ok ? await leaksRes.json() : { leaks: [] };
 
+      const activeAliases = (aliases.aliases || []).filter((a: { status: string }) => a.status === 'active').length;
+      const leaksDetected = (leaks.leaks || []).filter((l: { dismissed: boolean }) => !l.dismissed).length;
+
       setStats({
-        activeAliases: (aliases.aliases || []).filter((a: { status: string }) => a.status === 'active').length,
+        activeAliases,
         trackersBlocked: trackers.total_trackers_blocked || 0,
-        leaksDetected: (leaks.leaks || []).filter((l: { dismissed: boolean }) => !l.dismissed).length,
-        privacyScore: 78,
+        leaksDetected,
+        // Honest score: "—" until there's an alias to assess; otherwise start at
+        // 100 and dock 20 per unresolved leak. No fabricated constant.
+        privacyScore: activeAliases === 0 ? null : Math.max(0, 100 - leaksDetected * 20),
       });
     } catch {
       // Silent fail — stats bar shows defaults

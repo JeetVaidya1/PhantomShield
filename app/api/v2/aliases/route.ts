@@ -7,6 +7,10 @@ import { aliasCreateSchema } from '@/lib/validations/v2-schemas';
 import { selectDomainForNewAlias } from '@/lib/email/domains';
 import { generateAliasAddress } from '@/lib/email/alias-address';
 import { createAlias } from '@/lib/email/alias-sync';
+import {
+  encryptForwardingEmailAtRest,
+  decryptForwardingEmailAtRest,
+} from '@/lib/crypto/server';
 
 /**
  * SimpleLogin + multi-domain alias provisioning is active only when the bridge
@@ -100,12 +104,13 @@ export async function POST(request: Request) {
         user_id: auth.userId!,
         alias_email: aliasEmail,
         service_label: serviceLabel,
-        forwarding_email: parsed.data.forwarding_email,
         is_honeypot: false,
         type: 'email',
         status: 'active',
         domain_id: domainId,
         simplelogin_alias_id: simpleloginAliasId,
+        // Encrypted at rest; SimpleLogin still receives the plaintext above.
+        forwarding_email: encryptForwardingEmailAtRest(parsed.data.forwarding_email),
       })
       .select()
       .single();
@@ -155,7 +160,13 @@ export async function GET(request: Request) {
       return Response.json({ error: 'Failed to fetch aliases' }, { status: 500 });
     }
 
-    return Response.json({ aliases: aliases || [] });
+    // Decrypt forwarding addresses for the owner's own view (over HTTPS, RLS-scoped).
+    const decrypted = (aliases || []).map((a) => ({
+      ...a,
+      forwarding_email: decryptForwardingEmailAtRest(a.forwarding_email),
+    }));
+
+    return Response.json({ aliases: decrypted });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }

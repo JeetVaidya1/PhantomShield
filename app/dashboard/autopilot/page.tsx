@@ -43,9 +43,65 @@ export default function AutopilotPage() {
   const [killingIds, setKillingIds] = useState<Set<string>>(new Set());
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
 
-  // Visual-only settings
+  // Autopilot settings (persisted via /api/v2/settings/autopilot)
   const [autoKillEnabled, setAutoKillEnabled] = useState(false);
-  const [autoKillDays, setAutoKillDays] = useState(90);
+  const [autoKillDays, setAutoKillDays] = useState<30 | 60 | 90>(90);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState(false);
+
+  // Load persisted autopilot settings on mount.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch('/api/v2/settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        setAutoKillEnabled(data.autopilot_mode === 'auto_kill');
+        const days = data.autopilot_auto_kill_days;
+        if (days === 30 || days === 60 || days === 90) setAutoKillDays(days);
+      } catch {
+        // keep defaults
+      }
+    })();
+  }, []);
+
+  // Persist settings; optimistic with rollback on failure.
+  const saveAutopilotSettings = useCallback(
+    async (enabled: boolean, days: 30 | 60 | 90) => {
+      setSettingsSaving(true);
+      setSettingsError(false);
+      try {
+        const res = await apiFetch('/api/v2/settings/autopilot', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            autopilot_enabled: true,
+            autopilot_mode: enabled ? 'auto_kill' : 'manual',
+            autopilot_auto_kill_days: days,
+          }),
+        });
+        if (!res.ok) throw new Error('save failed');
+      } catch {
+        setSettingsError(true);
+      } finally {
+        setSettingsSaving(false);
+      }
+    },
+    []
+  );
+
+  const toggleAutoKill = useCallback(() => {
+    const next = !autoKillEnabled;
+    setAutoKillEnabled(next);
+    saveAutopilotSettings(next, autoKillDays);
+  }, [autoKillEnabled, autoKillDays, saveAutopilotSettings]);
+
+  const changeThreshold = useCallback(
+    (next: 30 | 60 | 90) => {
+      setAutoKillDays(next);
+      saveAutopilotSettings(autoKillEnabled, next);
+    },
+    [autoKillEnabled, saveAutopilotSettings]
+  );
 
   const fetchResults = useCallback(async () => {
     setResultsLoading(true);
@@ -437,7 +493,7 @@ export default function AutopilotPage() {
             <p className="text-xs text-[#64748b] mt-0.5">Automatically remove stale identities on scan</p>
           </div>
           <button
-            onClick={() => setAutoKillEnabled(!autoKillEnabled)}
+            onClick={toggleAutoKill}
             className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
               autoKillEnabled ? 'bg-[#6366f1]' : 'bg-[#1f2937]'
             }`}
@@ -458,8 +514,9 @@ export default function AutopilotPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setAutoKillDays(Math.max(30, autoKillDays - 30))}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0a0e17] border border-[#1f2937] hover:border-[#374151] text-[#94a3b8] font-bold text-sm transition-colors"
+              onClick={() => changeThreshold(Math.max(30, autoKillDays - 30) as 30 | 60 | 90)}
+              disabled={autoKillDays <= 30}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0a0e17] border border-[#1f2937] hover:border-[#374151] disabled:opacity-40 text-[#94a3b8] font-bold text-sm transition-colors"
             >
               -
             </button>
@@ -467,16 +524,23 @@ export default function AutopilotPage() {
               {autoKillDays}d
             </span>
             <button
-              onClick={() => setAutoKillDays(Math.min(365, autoKillDays + 30))}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0a0e17] border border-[#1f2937] hover:border-[#374151] text-[#94a3b8] font-bold text-sm transition-colors"
+              onClick={() => changeThreshold(Math.min(90, autoKillDays + 30) as 30 | 60 | 90)}
+              disabled={autoKillDays >= 90}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0a0e17] border border-[#1f2937] hover:border-[#374151] disabled:opacity-40 text-[#94a3b8] font-bold text-sm transition-colors"
             >
               +
             </button>
           </div>
         </div>
 
-        <p className="text-[11px] text-[#64748b]/60 mt-3">
-          Settings are saved locally. Backend integration in a future update.
+        <p className="text-[11px] mt-3 h-4">
+          {settingsSaving ? (
+            <span className="text-[#64748b]">Saving…</span>
+          ) : settingsError ? (
+            <span className="text-[#ef4444]">Couldn&apos;t save — try again.</span>
+          ) : (
+            <span className="text-[#64748b]/60">Changes are saved automatically.</span>
+          )}
         </p>
       </div>
 

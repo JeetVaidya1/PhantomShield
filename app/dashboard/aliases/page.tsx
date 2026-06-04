@@ -272,7 +272,7 @@ function CreateAliasModal({
               placeholder="your-real-email@example.com"
               className="w-full rounded-lg bg-[#0a0e17] border border-[#1f2937] px-4 py-2.5 text-sm text-[#e2e8f0] placeholder-[#64748b]/50 focus:outline-none focus:ring-1 focus:ring-[#6366f1] focus:border-[#6366f1] transition-colors"
             />
-            <p className="text-[10px] text-[#64748b] mt-1.5">Encrypted before storage — we never see your real email</p>
+            <p className="text-[10px] text-[#64748b] mt-1.5">Encrypted at rest before storage (AES-256-GCM)</p>
           </div>
         </div>
 

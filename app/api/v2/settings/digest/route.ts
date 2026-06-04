@@ -26,13 +26,17 @@ export async function PATCH(request: Request) {
     const supabase = getSupabaseServiceClient();
     const { error } = await supabase
       .from('user_settings')
-      .update({
-        email_forward_mode: parsed.data.email_forward_mode,
-        digest_frequency: parsed.data.digest_frequency,
-        digest_time: parsed.data.digest_time,
-        ...(parsed.data.digest_day !== undefined ? { digest_day: parsed.data.digest_day } : {}),
-      })
-      .eq('user_id', auth.userId!);
+      // Upsert so a missing settings row is created rather than silently no-op'd.
+      .upsert(
+        {
+          user_id: auth.userId!,
+          email_forward_mode: parsed.data.email_forward_mode,
+          digest_frequency: parsed.data.digest_frequency,
+          digest_time: parsed.data.digest_time,
+          ...(parsed.data.digest_day !== undefined ? { digest_day: parsed.data.digest_day } : {}),
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (error) {
       return Response.json({ error: 'Failed to update digest settings' }, { status: 500 });

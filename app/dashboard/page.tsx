@@ -216,7 +216,7 @@ function StatusDot({ color }: { color: 'green' | 'red' | 'amber' }) {
 interface MetricCardProps {
   icon: React.ReactNode;
   label: string;
-  value: number;
+  value: number | null; // null renders as "—" (not enough data)
   trend?: 'up' | 'down' | 'neutral';
   trendGood?: boolean; // is the trend direction good?
   suffix?: string;
@@ -244,9 +244,9 @@ function MetricCard({ icon, label, value, trend = 'neutral', trendGood = true, s
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-2xl font-bold font-mono tabular-nums text-[#e2e8f0]">
-          {value.toLocaleString()}
+          {value === null ? '—' : value.toLocaleString()}
         </span>
-        {suffix && (
+        {suffix && value !== null && (
           <span className="text-xs text-[#64748b] font-mono">{suffix}</span>
         )}
       </div>
@@ -526,10 +526,11 @@ export default function DashboardPage() {
   const trackerTrend = useMemo(() => stats ? computeTrend(stats.daily_trend) : 'neutral', [stats]);
   const activityItems = useMemo(() => buildActivityFeed(stats, leaks, aliases), [stats, leaks, aliases]);
 
-  const privacyScore = useMemo(() => {
-    // Simple heuristic: base 50, +20 for having aliases, +15 for no leaks, +15 for blocking trackers
-    let score = 50;
-    if (activeAliasCount > 0) score += 20;
+  const privacyScore = useMemo<number | null>(() => {
+    // No aliases yet -> nothing to assess; show "—" instead of a fabricated number.
+    if (activeAliasCount === 0) return null;
+    // Heuristic once there's data: base 50, +20 aliases, +15 no leaks, +15 trackers blocked.
+    let score = 50 + 20;
     if (activeLeakCount === 0) score += 15;
     if (stats && stats.total_trackers_blocked > 0) score += 15;
     return Math.min(score, 100);
@@ -636,8 +637,8 @@ export default function DashboardPage() {
           label="Privacy Score"
           value={privacyScore}
           suffix="/100"
-          trend={privacyScore >= 75 ? 'up' : privacyScore >= 50 ? 'neutral' : 'down'}
-          trendGood={privacyScore >= 75}
+          trend={privacyScore === null ? 'neutral' : privacyScore >= 75 ? 'up' : privacyScore >= 50 ? 'neutral' : 'down'}
+          trendGood={privacyScore !== null && privacyScore >= 75}
         />
       </div>
 

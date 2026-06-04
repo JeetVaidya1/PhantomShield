@@ -21,14 +21,19 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = getSupabaseServiceClient();
+    // Upsert: new users may not have a settings row yet, so a plain UPDATE
+    // would silently no-op.
     const { error } = await supabase
       .from('user_settings')
-      .update({
-        autopilot_enabled: parsed.data.autopilot_enabled,
-        autopilot_mode: parsed.data.autopilot_mode,
-        autopilot_auto_kill_days: parsed.data.autopilot_auto_kill_days,
-      })
-      .eq('user_id', auth.userId!);
+      .upsert(
+        {
+          user_id: auth.userId!,
+          autopilot_enabled: parsed.data.autopilot_enabled,
+          autopilot_mode: parsed.data.autopilot_mode,
+          autopilot_auto_kill_days: parsed.data.autopilot_auto_kill_days,
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (error) {
       return Response.json({ error: 'Failed to update autopilot settings' }, { status: 500 });

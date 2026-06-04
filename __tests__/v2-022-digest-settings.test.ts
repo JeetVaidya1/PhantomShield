@@ -15,6 +15,10 @@ vi.mock('../lib/supabase', () => ({
         updateSpy(patch);
         return { eq: () => Promise.resolve({ error: updateError }) };
       },
+      upsert: (row: unknown) => {
+        updateSpy(row);
+        return Promise.resolve({ error: updateError });
+      },
     }),
   }),
 }));
