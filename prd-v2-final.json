@@ -607,7 +607,7 @@
             "Test: user with manual mode gets notification, no aliases killed",
             "Test: user with auto-kill mode gets aliases killed + summary notification"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-031",
@@ -623,7 +623,7 @@
             "After reviewing all: shows footprint reduction percentage",
             "Trigger manual scan button on settings screen"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-032",

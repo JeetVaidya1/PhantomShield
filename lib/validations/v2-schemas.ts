@@ -70,6 +70,18 @@ export const digestSettingsSchema = z.object({
   digest_day: z.number().int().min(0).max(6).optional(),
 });
 
+// ---- Autopilot Settings ----
+export const autopilotSettingsSchema = z.object({
+  autopilot_enabled: z.boolean(),
+  autopilot_mode: z.enum(['manual', 'auto_kill']),
+  autopilot_auto_kill_days: z.union([z.literal(30), z.literal(60), z.literal(90)]),
+});
+
+// ---- Autopilot Keep ----
+export const autopilotKeepSchema = z.object({
+  identity_ids: z.array(z.string().uuid()).min(1).max(100),
+});
+
 // ---- Domain Report ----
 export const domainReportSchema = z.object({
   domain_id: z.string().uuid('Invalid domain ID'),
