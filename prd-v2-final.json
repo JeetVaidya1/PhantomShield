@@ -4,12 +4,12 @@
   "prerequisites": "Before starting ANY phase: Jeet must complete ALL steps in ARCHITECTURE-V2-FINAL.md Section 2 (Infrastructure Setup). Verify email flow works, DKIM passes, Telnyx sends SMS, VPS firewall is configured.",
   "security_rules_for_every_story": [
     "Every API endpoint MUST verify Supabase JWT via getServerSession or createRouteHandlerClient",
-    "Every database query MUST be scoped to auth.uid() \u2014 verify RLS policy exists",
+    "Every database query MUST be scoped to auth.uid() — verify RLS policy exists",
     "Every user input MUST be validated with zod schema before database insertion",
     "Every webhook endpoint MUST verify provider signature before processing payload",
     "Every new table MUST have RLS enabled with appropriate policies",
-    "Never store secrets in code \u2014 all from process.env",
-    "Never use AsyncStorage for tokens/keys \u2014 only expo-secure-store",
+    "Never store secrets in code — all from process.env",
+    "Never use AsyncStorage for tokens/keys — only expo-secure-store",
     "Log all sensitive operations to audit_log table",
     "Rate limit all endpoints per security spec in ARCHITECTURE-V2-FINAL.md Section 10D"
   ],
@@ -23,7 +23,7 @@
       "stories": [
         {
           "id": "v2-001",
-          "title": "V2 database migrations \u2014 all new tables",
+          "title": "V2 database migrations — all new tables",
           "description": "Create a single Supabase migration file containing ALL table definitions from ARCHITECTURE-V2-FINAL.md Section 11. This includes: alias_domains, tracker_logs, leak_detections, company_privacy_scores, email_summaries, digest_batches, honeypot_triggers, deletion_requests, company_privacy_contacts, autopilot_scans, audit_log, families, family_members. Also ALTER identities table to add: domain_id, reverse_alias_token, reply_enabled, phone_provider, phone_provider_sid, is_honeypot, service_label, simplelogin_alias_id. Also ALTER user_settings to add: email_forward_mode, digest_frequency, digest_time, digest_day, autopilot_enabled, autopilot_auto_kill_days, nuke_contact_number.",
           "acceptance": [
             "Migration file at supabase/migrations/YYYYMMDD_v2_tables.sql runs without errors",
@@ -32,20 +32,20 @@
             "RLS enabled on EVERY new table",
             "RLS policies match ARCHITECTURE-V2-FINAL.md Section 11 exactly",
             "Indexes created on: tracker_logs(user_id, processed_at), email_summaries(user_id, received_at), audit_log(user_id, created_at)",
-            "audit_log has NO insert/update/delete policy for users \u2014 only service role can write"
+            "audit_log has NO insert/update/delete policy for users — only service role can write"
           ],
           "passes": true
         },
         {
           "id": "v2-002",
           "title": "Audit logging middleware",
-          "description": "Create lib/audit.ts \u2014 a utility that logs sensitive operations to the audit_log table. Must use Supabase service role client (not user client) since users have no write access to audit_log. Include: logAudit(userId, action, resourceType, resourceId, metadata, request). Extract IP from x-forwarded-for header, user-agent from request headers.",
+          "description": "Create lib/audit.ts — a utility that logs sensitive operations to the audit_log table. Must use Supabase service role client (not user client) since users have no write access to audit_log. Include: logAudit(userId, action, resourceType, resourceId, metadata, request). Extract IP from x-forwarded-for header, user-agent from request headers.",
           "acceptance": [
             "lib/audit.ts exports logAudit function",
             "Uses supabase service role client for insert (bypasses RLS)",
             "Extracts IP address from x-forwarded-for or x-real-ip headers",
             "Extracts user-agent from request headers",
-            "Handles errors gracefully \u2014 audit failure must NOT break the main request",
+            "Handles errors gracefully — audit failure must NOT break the main request",
             "Test: calling logAudit creates record in audit_log with all fields populated",
             "Test: logAudit with invalid user_id still doesn't throw (logs warning instead)"
           ],
@@ -97,7 +97,7 @@
             "GDPR company_email validates email format",
             "Honeypot planted_at_url validates URL format (optional field)",
             "All schemas have .transform() to sanitize strings (trim, strip HTML)",
-            "Test: XSS attempt in label '<script>alert(1)</script>Netflix' \u2192 'Netflix'",
+            "Test: XSS attempt in label '<script>alert(1)</script>Netflix' → 'Netflix'",
             "Test: SQL injection attempt in company name returns sanitized string",
             "Test: invalid phone number '+abc' fails validation",
             "Test: valid inputs pass all schemas"
@@ -121,9 +121,9 @@
             "lib/phone/factory.ts exports getPhoneProvider() returning correct implementation based on PHONE_PROVIDER env var",
             "Factory throws descriptive error for unknown provider value",
             "Factory throws if PHONE_PROVIDER env var is not set",
-            "TypeScript types are strict \u2014 no 'any' types"
+            "TypeScript types are strict — no 'any' types"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-007",
@@ -146,7 +146,7 @@
         {
           "id": "v2-008",
           "title": "Twilio provider refactor",
-          "description": "Refactor existing lib/twilio.ts into lib/phone/providers/twilio.ts implementing PhoneProvider interface. No new functionality \u2014 just interface compliance. Keep existing Twilio SDK usage but wrapped in the interface methods.",
+          "description": "Refactor existing lib/twilio.ts into lib/phone/providers/twilio.ts implementing PhoneProvider interface. No new functionality — just interface compliance. Keep existing Twilio SDK usage but wrapped in the interface methods.",
           "acceptance": [
             "lib/phone/providers/twilio.ts implements PhoneProvider interface",
             "All existing Twilio functionality preserved",
@@ -154,7 +154,7 @@
             "Test: existing Twilio tests still pass",
             "Test: factory returns TwilioProvider when PHONE_PROVIDER=twilio"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-009",
@@ -162,16 +162,16 @@
           "description": "Create app/api/webhooks/telnyx-sms/route.ts. Must: 1) verify webhook signature using lib/webhooks/verify.ts, 2) parse inbound SMS using provider.parseInboundSMS, 3) query identities table by phone number to find owner, 4) send push notification with SMS content, 5) log SMS metadata, 6) log to audit_log, 7) rate limit by source IP.",
           "acceptance": [
             "POST /api/webhooks/telnyx-sms endpoint exists",
-            "First action: verify signature \u2014 reject 401 if invalid",
+            "First action: verify signature — reject 401 if invalid",
             "Rejects requests with timestamps older than 5 minutes",
             "Looks up identity by phone number (handles E.164 format matching)",
             "Sends push notification to identity owner with SMS sender + text",
             "Returns 200 for valid webhook, 401 for bad signature, 404 for unknown number",
             "Logs to audit_log: action='sms_received', resource_type='identity'",
             "Rate limited: 1000/min per source IP",
-            "Test: valid webhook with known number \u2192 200 + push notification triggered",
-            "Test: valid webhook with unknown number \u2192 200 (no error, just ignore)",
-            "Test: invalid signature \u2192 401",
+            "Test: valid webhook with known number → 200 + push notification triggered",
+            "Test: valid webhook with unknown number → 200 (no error, just ignore)",
+            "Test: invalid signature → 401",
             "Does NOT expose any user data in response body"
           ],
           "passes": false
@@ -203,7 +203,7 @@
         {
           "id": "v2-011",
           "title": "SimpleLogin database bridge",
-          "description": "Create lib/email/alias-sync.ts. This connects to SimpleLogin's PostgreSQL (separate from Supabase) using SIMPLELOGIN_DB_URI env var. Implements: createAlias(userId, aliasEmail, forwardingEmail) \u2014 creates record in SimpleLogin's alias table + our identities table. deactivateAlias(aliasId) \u2014 sets enabled=false in SimpleLogin. Uses connection pooling. See ARCHITECTURE-V2-FINAL.md Section 3A.",
+          "description": "Create lib/email/alias-sync.ts. This connects to SimpleLogin's PostgreSQL (separate from Supabase) using SIMPLELOGIN_DB_URI env var. Implements: createAlias(userId, aliasEmail, forwardingEmail) — creates record in SimpleLogin's alias table + our identities table. deactivateAlias(aliasId) — sets enabled=false in SimpleLogin. Uses connection pooling. See ARCHITECTURE-V2-FINAL.md Section 3A.",
           "acceptance": [
             "lib/email/alias-sync.ts connects to SimpleLogin Postgres via SIMPLELOGIN_DB_URI",
             "Uses pg npm package with connection pooling (max 5 connections)",
@@ -220,7 +220,7 @@
         {
           "id": "v2-012",
           "title": "Multi-domain management API",
-          "description": "Create API endpoints for domain management. GET /api/v2/domains \u2014 list active domains. POST /api/v2/domains/:id/report-blocked \u2014 report a domain as blocked (increments blocked_count, auto-deactivates at threshold of 10). Create lib/email/domains.ts with getActiveDomains() and selectDomainForNewAlias(userId). See ARCHITECTURE-V2-FINAL.md Section 5.",
+          "description": "Create API endpoints for domain management. GET /api/v2/domains — list active domains. POST /api/v2/domains/:id/report-blocked — report a domain as blocked (increments blocked_count, auto-deactivates at threshold of 10). Create lib/email/domains.ts with getActiveDomains() and selectDomainForNewAlias(userId). See ARCHITECTURE-V2-FINAL.md Section 5.",
           "acceptance": [
             "GET /api/v2/domains returns list of active, verified domains (auth required)",
             "POST /api/v2/domains/:id/report-blocked increments blocked_count (auth required)",
@@ -300,10 +300,10 @@
             "Handles malformed HTML without crashing",
             "Does NOT modify plain text emails",
             "Does NOT strip non-tracking images (width > 1 or height > 1)",
-            "Test: email with Mailchimp pixel \u2192 pixel removed, count = 1",
-            "Test: email with 3 UTM links \u2192 links cleaned, count = 3",
-            "Test: email with no trackers \u2192 forwarded unchanged, count = 0",
-            "Test: plain text email \u2192 forwarded unchanged"
+            "Test: email with Mailchimp pixel → pixel removed, count = 1",
+            "Test: email with 3 UTM links → links cleaned, count = 3",
+            "Test: email with no trackers → forwarded unchanged, count = 0",
+            "Test: plain text email → forwarded unchanged"
           ],
           "passes": false
         },
@@ -347,7 +347,7 @@
         {
           "id": "v2-018",
           "title": "Leak detection engine",
-          "description": "In the email events webhook handler (v2-014), add leak detection logic. When a forwarded email arrives: check if the identity has a service_label. If yes, compare sender domain against the label. If sender domain does NOT match the service_label (fuzzy match \u2014 netflix.com matches 'Netflix'), create leak_detection record and send push notification. Create GET /api/v2/leaks and PATCH /api/v2/leaks/:id/dismiss endpoints.",
+          "description": "In the email events webhook handler (v2-014), add leak detection logic. When a forwarded email arrives: check if the identity has a service_label. If yes, compare sender domain against the label. If sender domain does NOT match the service_label (fuzzy match — netflix.com matches 'Netflix'), create leak_detection record and send push notification. Create GET /api/v2/leaks and PATCH /api/v2/leaks/:id/dismiss endpoints.",
           "acceptance": [
             "Leak detection runs on every forwarded email for identities with service_label",
             "Domain matching is fuzzy: 'Netflix' label matches netflix.com, email.netflix.com, etc.",
@@ -355,10 +355,10 @@
             "Push notification: 'Your {service} alias received email from {sender_domain}'",
             "GET /api/v2/leaks returns user's non-dismissed detections, sorted by date desc",
             "PATCH /api/v2/leaks/:id/dismiss sets dismissed=true (auth + ownership verified)",
-            "Does NOT flag: emails from common transactional senders (sendgrid.net, mailgun.org, amazonaws.com) \u2014 these are infrastructure, not the company itself",
-            "Test: email from vitamins.com to Netflix-labeled alias \u2192 leak detected",
-            "Test: email from netflix.com to Netflix-labeled alias \u2192 no leak",
-            "Test: email from email.netflix.com to Netflix-labeled alias \u2192 no leak",
+            "Does NOT flag: emails from common transactional senders (sendgrid.net, mailgun.org, amazonaws.com) — these are infrastructure, not the company itself",
+            "Test: email from vitamins.com to Netflix-labeled alias → leak detected",
+            "Test: email from netflix.com to Netflix-labeled alias → no leak",
+            "Test: email from email.netflix.com to Netflix-labeled alias → no leak",
             "Test: dismiss endpoint only works for own leak detections"
           ],
           "passes": true
@@ -391,12 +391,12 @@
         {
           "id": "v2-020",
           "title": "Email classification and AI summary service",
-          "description": "Create lib/email/classifier.ts \u2014 classifies emails as transactional or marketing. Heuristic first (keyword matching), AI fallback via gpt-4o-mini. Create lib/email/summarizer.ts \u2014 generates one-line summary for marketing emails. Create POST /api/v2/email/summarize endpoint called by tracker stripper. See ARCHITECTURE-V2-FINAL.md Section 3D.",
+          "description": "Create lib/email/classifier.ts — classifies emails as transactional or marketing. Heuristic first (keyword matching), AI fallback via gpt-4o-mini. Create lib/email/summarizer.ts — generates one-line summary for marketing emails. Create POST /api/v2/email/summarize endpoint called by tracker stripper. See ARCHITECTURE-V2-FINAL.md Section 3D.",
           "acceptance": [
             "lib/email/classifier.ts classifyEmail(subject, from, bodyPreview) returns 'transactional' | 'marketing'",
             "Heuristic catches obvious cases without API call (receipt, password reset = transactional; unsubscribe, newsletter = marketing)",
             "AI fallback uses gpt-4o-mini with max_tokens: 10, costs ~$0.0001 per call",
-            "lib/email/summarizer.ts summarizeEmail(subject, bodyText) returns one-line summary \u2264 20 words",
+            "lib/email/summarizer.ts summarizeEmail(subject, bodyText) returns one-line summary ≤ 20 words",
             "POST /api/v2/email/summarize receives email metadata, returns {type, summary}",
             "Endpoint secured by shared secret (called from VPS, not users)",
             "AI summarization rate limited: 100/day per user",
@@ -406,7 +406,7 @@
             "Test: 'Your order has shipped' classified as transactional without AI call",
             "Test: newsletter with 'unsubscribe' link classified as marketing without AI call",
             "Test: ambiguous email calls AI and returns classification",
-            "Test: summary is \u2264 20 words"
+            "Test: summary is ≤ 20 words"
           ],
           "passes": true
         },
@@ -420,7 +420,7 @@
             "Creates digest_batch record",
             "Compiles all unforwarded marketing email summaries for each user",
             "Formats digest as clean HTML email: one line per email with subject + AI summary",
-            "Sends digest via SimpleLogin's outgoing SMTP (not direct \u2014 goes through proper DKIM signing)",
+            "Sends digest via SimpleLogin's outgoing SMTP (not direct — goes through proper DKIM signing)",
             "Marks all compiled emails as forwarded=true with digest_batch_id set",
             "Handles users with no pending emails gracefully (skip, don't send empty digest)",
             "Weekly mode: only sends on user's digest_day",
@@ -455,7 +455,7 @@
             "Decrypts full_body_encrypted using user's encryption key from expo-secure-store",
             "Renders HTML in WebView with: javaScriptEnabled=false, allowFileAccess=false, mixedContentMode='never'",
             "External links open in system browser (Linking.openURL), not in WebView",
-            "Images NOT loaded by default \u2014 'Load Images' button to enable",
+            "Images NOT loaded by default — 'Load Images' button to enable",
             "Shows banner: 'X trackers were stripped from this email'",
             "Shows leak status if applicable",
             "Reply button navigates to compose (uses reverse alias from SimpleLogin)",
@@ -476,18 +476,18 @@
         {
           "id": "v2-024",
           "title": "Honeypot alias creation and trigger detection",
-          "description": "POST /api/v2/honeypots \u2014 creates identity with is_honeypot=true. GET /api/v2/honeypots \u2014 lists honeypots with trigger data from honeypot_triggers table. In email events webhook (v2-014), add honeypot check: if receiving identity is_honeypot, do NOT forward email, instead create honeypot_triggers record and send high-priority push notification.",
+          "description": "POST /api/v2/honeypots — creates identity with is_honeypot=true. GET /api/v2/honeypots — lists honeypots with trigger data from honeypot_triggers table. In email events webhook (v2-014), add honeypot check: if receiving identity is_honeypot, do NOT forward email, instead create honeypot_triggers record and send high-priority push notification.",
           "acceptance": [
             "POST /api/v2/honeypots creates identity with is_honeypot=true, service_label from request",
             "Input validated: label required, max 100 chars, sanitized",
             "GET /api/v2/honeypots returns honeypots with: label, planted_at_service, trigger_count, last_trigger",
             "Email to honeypot alias: NOT forwarded to user",
             "Honeypot trigger creates honeypot_triggers record with sender details",
-            "Push notification: high priority, '\ud83d\udea8 HONEYPOT TRIGGERED: Your alias planted at {service} received email from {sender}'",
+            "Push notification: high priority, '🚨 HONEYPOT TRIGGERED: Your alias planted at {service} received email from {sender}'",
             "Rate limited: honeypot creation 5/day per user",
             "Logged to audit_log: 'honeypot_created', 'honeypot_triggered'",
-            "Test: email to honeypot \u2192 not forwarded, trigger recorded, push sent",
-            "Test: email to non-honeypot \u2192 forwarded normally",
+            "Test: email to honeypot → not forwarded, trigger recorded, push sent",
+            "Test: email to non-honeypot → forwarded normally",
             "Test: GET returns correct trigger counts"
           ],
           "passes": true
@@ -511,7 +511,7 @@
         {
           "id": "v2-026",
           "title": "GDPR/CCPA deletion request engine",
-          "description": "Create lib/gdpr/templates.ts with legally valid GDPR Article 17 and CCPA Section 1798.105 email templates. Create POST /api/v2/deletion-requests \u2014 generates email from template, sends FROM alias via SimpleLogin reverse-alias system, creates deletion_requests record with 30-day deadline. GET /api/v2/deletion-requests lists user's requests. PATCH to update status.",
+          "description": "Create lib/gdpr/templates.ts with legally valid GDPR Article 17 and CCPA Section 1798.105 email templates. Create POST /api/v2/deletion-requests — generates email from template, sends FROM alias via SimpleLogin reverse-alias system, creates deletion_requests record with 30-day deadline. GET /api/v2/deletion-requests lists user's requests. PATCH to update status.",
           "acceptance": [
             "lib/gdpr/templates.ts exports GDPR and CCPA email templates",
             "Templates use ONLY alias email and company name as variables (no template injection possible)",
@@ -532,7 +532,7 @@
         {
           "id": "v2-027",
           "title": "Company privacy contacts database + API",
-          "description": "Seed company_privacy_contacts table with top 200 companies and their privacy@ / dpo@ email addresses. Create GET /api/v2/company-contacts/:domain \u2014 returns known contact or null. When user creates GDPR request for unknown company, save the contact they provide (crowdsource).",
+          "description": "Seed company_privacy_contacts table with top 200 companies and their privacy@ / dpo@ email addresses. Create GET /api/v2/company-contacts/:domain — returns known contact or null. When user creates GDPR request for unknown company, save the contact they provide (crowdsource).",
           "acceptance": [
             "Seed migration inserts 200+ company privacy contacts",
             "Contacts include: Google, Apple, Amazon, Meta, Netflix, Uber, etc.",
@@ -574,7 +574,7 @@
         {
           "id": "v2-029",
           "title": "Privacy autopilot scan engine",
-          "description": "Create POST /api/v2/autopilot/scan \u2014 scans user's identities for: aliases with 0 emails in 90 days, aliases where 100% of emails are spam, phone numbers with 0 SMS in 60 days. Stores results in autopilot_scans. GET /api/v2/autopilot/results returns latest scan. POST /api/v2/autopilot/kill bulk-kills stale identities from scan.",
+          "description": "Create POST /api/v2/autopilot/scan — scans user's identities for: aliases with 0 emails in 90 days, aliases where 100% of emails are spam, phone numbers with 0 SMS in 60 days. Stores results in autopilot_scans. GET /api/v2/autopilot/results returns latest scan. POST /api/v2/autopilot/kill bulk-kills stale identities from scan.",
           "acceptance": [
             "POST /api/v2/autopilot/scan runs scan for authenticated user",
             "Identifies stale aliases (no email_summaries in 90 days)",
@@ -595,11 +595,11 @@
         {
           "id": "v2-030",
           "title": "Autopilot monthly cron and notifications",
-          "description": "Create POST /api/cron/autopilot \u2014 runs monthly for all users with autopilot_enabled=true. For auto-kill mode: automatically kill aliases meeting threshold. For manual mode: send push notification with count. Deep link to review screen.",
+          "description": "Create POST /api/cron/autopilot — runs monthly for all users with autopilot_enabled=true. For auto-kill mode: automatically kill aliases meeting threshold. For manual mode: send push notification with count. Deep link to review screen.",
           "acceptance": [
             "POST /api/cron/autopilot verifies CRON_SECRET",
             "Runs scan for each user with autopilot_enabled=true",
-            "Manual mode: sends push '\ud83e\uddf9 Privacy Cleanup: N stale identities found. Review?'",
+            "Manual mode: sends push '🧹 Privacy Cleanup: N stale identities found. Review?'",
             "Auto-kill mode: kills aliases meeting autopilot_auto_kill_days threshold",
             "Auto-kill sends summary push: 'Auto-killed N stale aliases this month'",
             "Push notification deep links to autopilot review screen",
@@ -628,7 +628,7 @@
         {
           "id": "v2-032",
           "title": "Company privacy scores computation and API",
-          "description": "Create POST /api/cron/company-scores \u2014 nightly job that aggregates leak_detections across all users (anonymized) to compute privacy scores per company domain. Score formula: starts at 100, loses points based on leak_rate, adjusted for sample size. GET /api/v2/company-scores/:domain \u2014 public endpoint (rate limited, no auth required).",
+          "description": "Create POST /api/cron/company-scores — nightly job that aggregates leak_detections across all users (anonymized) to compute privacy scores per company domain. Score formula: starts at 100, loses points based on leak_rate, adjusted for sample size. GET /api/v2/company-scores/:domain — public endpoint (rate limited, no auth required).",
           "acceptance": [
             "POST /api/cron/company-scores verifies CRON_SECRET",
             "Aggregates: for each company domain, count total identities with that service_label, count leak_detections",
@@ -637,19 +637,19 @@
             "Companies with < 10 identities: score = null (insufficient data)",
             "Stores results in company_privacy_scores table",
             "GET /api/v2/company-scores/:domain returns score, leak_rate, total_aliases, last_computed_at",
-            "Public endpoint \u2014 no auth required but rate limited: 60/min per IP",
+            "Public endpoint — no auth required but rate limited: 60/min per IP",
             "Returns 'insufficient_data' for companies below threshold",
             "Response cached (Cache-Control: max-age=86400)",
             "No individual user data exposed in response (only aggregates)",
-            "Test: company with 100 aliases and 5 leaks \u2192 score 95",
-            "Test: company with 3 aliases \u2192 insufficient_data"
+            "Test: company with 100 aliases and 5 leaks → score 95",
+            "Test: company with 3 aliases → insufficient_data"
           ],
           "passes": true
         },
         {
           "id": "v2-033",
           "title": "Privacy score badge in alias creation and detail",
-          "description": "When creating alias and user enters service name, debounced lookup to GET /api/v2/company-scores/:domain. Show inline badge: \ud83d\udfe2 80-100 Low Risk, \ud83d\udfe1 50-79 Medium Risk, \ud83d\udd34 0-49 High Risk. Also show on identity detail screen.",
+          "description": "When creating alias and user enters service name, debounced lookup to GET /api/v2/company-scores/:domain. Show inline badge: 🟢 80-100 Low Risk, 🟡 50-79 Medium Risk, 🔴 0-49 High Risk. Also show on identity detail screen.",
           "acceptance": [
             "Alias creation form: after typing service name, debounced (500ms) score lookup",
             "Badge shows with correct color/risk level based on score",
@@ -681,7 +681,7 @@
             "Rate limited: 1 per 24 hours per user",
             "Logged to audit_log: 'emergency_nuke' with counts of killed identities, GDPR emails sent",
             "Returns: { identities_killed, gdpr_emails_sent, recovery_deadline }",
-            "Runs as atomic transaction \u2014 if any step fails, rolls back",
+            "Runs as atomic transaction — if any step fails, rolls back",
             "Test: nuke kills all identities and sends GDPR emails",
             "Test: nuke without biometric token returns 403",
             "Test: second nuke within 24 hours returns 429"
@@ -691,7 +691,7 @@
         {
           "id": "v2-035",
           "title": "Emergency nuke mobile UI",
-          "description": "Settings screen: 'Emergency' section with red styling. Big red 'NUKE EVERYTHING' button. Flow: tap \u2192 biometric prompt \u2192 confirmation dialog listing what will happen \u2192 optional 'I'm safe' message to emergency contact \u2192 final confirm \u2192 loading \u2192 success screen with recovery info.",
+          "description": "Settings screen: 'Emergency' section with red styling. Big red 'NUKE EVERYTHING' button. Flow: tap → biometric prompt → confirmation dialog listing what will happen → optional 'I'm safe' message to emergency contact → final confirm → loading → success screen with recovery info.",
           "acceptance": [
             "Red-styled Emergency section in settings",
             "Tap triggers biometric authentication (FaceID/TouchID/PIN)",
@@ -747,7 +747,7 @@
         {
           "id": "v2-038",
           "title": "Family plan API",
-          "description": "Create endpoints: POST /api/v2/family (create family, user becomes owner), POST /api/v2/family/invite (send invite email to family member), GET /api/v2/family/stats (aggregate stats across family \u2014 total trackers blocked, total aliases, total leaks). DELETE /api/v2/family/members/:id (owner only). Each family member has independent encrypted vault \u2014 owner CANNOT see members' aliases.",
+          "description": "Create endpoints: POST /api/v2/family (create family, user becomes owner), POST /api/v2/family/invite (send invite email to family member), GET /api/v2/family/stats (aggregate stats across family — total trackers blocked, total aliases, total leaks). DELETE /api/v2/family/members/:id (owner only). Each family member has independent encrypted vault — owner CANNOT see members' aliases.",
           "acceptance": [
             "POST /api/v2/family creates family with authenticated user as owner",
             "Max 5 members per family (configurable)",
@@ -773,7 +773,7 @@
             "Family section only visible with active family plan subscription",
             "Member list shows: name, role, joined date",
             "Aggregate stats card: 'Your family blocked X trackers this month'",
-            "Invite button opens email input \u2192 sends invite",
+            "Invite button opens email input → sends invite",
             "Owner can remove members with confirmation",
             "Parental controls: toggle max aliases, disable phone numbers for child accounts",
             "Non-owners see read-only view (no manage/invite buttons)"
