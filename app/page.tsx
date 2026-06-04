@@ -168,13 +168,13 @@ const COMP_FEATURES = [
   { name: 'No email to sign up', vals: [true, false, false, false, false] },
 ];
 
-// --- Nav items for smooth scroll ---
+// --- Nav items for smooth scroll (labels match their destination + page order) ---
 const NAV_LINKS = [
   { label: 'HOME', href: '#hero' },
-  { label: 'SOLUTIONS', href: '#features' },
-  { label: 'SERVICES', href: '#how-it-works' },
-  { label: 'ABOUT', href: '#pricing' },
-  { label: 'CONTACT', href: '#footer' },
+  { label: 'HOW IT WORKS', href: '#how-it-works' },
+  { label: 'FEATURES', href: '#features' },
+  { label: 'PRICING', href: '#pricing' },
+  { label: 'COMPARE', href: '#comparison' },
 ];
 
 // --- Persistent tech lines running down both sides of the page ---
@@ -339,14 +339,14 @@ export default function LandingPage() {
               href="/auth"
               className="inline-block text-sm sm:text-base font-bold tracking-[0.15em] uppercase px-8 py-4 border-2 border-[#22d3ee]/40 text-[#e2e8f0] hover:bg-[#22d3ee]/10 hover:border-[#22d3ee]/70 hover:shadow-[0_0_30px_rgba(34,211,238,0.15)] transition-all duration-300 rounded"
             >
-              Secure Your Assets (Zero-Knowledge)
+              Take Back Your Privacy — Free
             </Link>
           </div>
         </div>
       </section>
 
       {/* ========== HOW IT WORKS ========== */}
-      <section id="how-it-works" className="relative py-24 sm:py-32 overflow-hidden">
+      <section id="how-it-works" className="relative py-16 sm:py-20 overflow-hidden">
         <div ref={howFade.ref} className={howFade.className}>
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
@@ -372,7 +372,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========== FEATURE GRID ========== */}
-      <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
+      <section id="features" className="relative py-16 sm:py-20 overflow-hidden">
         {/* Subtle radial glow from center */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.04)_0%,_transparent_70%)]" />
         <div ref={featureFade.ref} className={featureFade.className}>
@@ -404,7 +404,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========== PRICING ========== */}
-      <section id="pricing" className="relative py-24 sm:py-32 overflow-hidden">
+      <section id="pricing" className="relative py-16 sm:py-20 overflow-hidden">
         <div ref={pricingFade.ref} className={pricingFade.className}>
           <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
@@ -493,7 +493,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========== COMPETITIVE COMPARISON ========== */}
-      <section className="relative py-24 sm:py-32 overflow-hidden">
+      <section id="comparison" className="relative py-16 sm:py-20 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.03)_0%,_transparent_60%)]" />
         <div ref={compFade.ref} className={compFade.className}>
           <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
