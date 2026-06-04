@@ -48,20 +48,9 @@ export async function POST(request: Request) {
       return Response.json({ error: 'No scan found. Run a scan first.' }, { status: 400 });
     }
 
-    const scanIdentityIds = (latestScan.stale_identities as Array<{ identity_id: string }>).map(
-      (s) => s.identity_id
-    );
-
-    // Verify all requested IDs are from the latest scan
-    const invalidIds = parsed.data.identity_ids.filter((id) => !scanIdentityIds.includes(id));
-    if (invalidIds.length > 0) {
-      return Response.json(
-        { error: 'Some identity IDs are not from the latest scan', invalid_ids: invalidIds },
-        { status: 400 }
-      );
-    }
-
-    // Deactivate each identity (verify user ownership via RLS)
+    // Deactivate each requested identity, scoped to the caller via user_id (RLS).
+    // Ownership — not scan membership — is the security boundary: a user may
+    // always deactivate their own identities once a scan exists.
     let killedCount = 0;
     for (const identityId of parsed.data.identity_ids) {
       const { error } = await supabase

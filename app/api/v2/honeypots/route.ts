@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { getAuthUser } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabase';
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
@@ -32,14 +33,22 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseServiceClient();
 
+    // Generate random alias email so the honeypot can receive (and trap) mail
+    const aliasEmail = crypto.randomBytes(8).toString('hex') + '@phantomdefender.com';
+
+    // Build service_label: "Label — Service" (mirrors alias creation)
+    const serviceLabel = `${parsed.data.label} — ${parsed.data.planted_at_service}`;
+
     // Create identity with is_honeypot=true
     const { data: identity, error } = await supabase
       .from('identities')
       .insert({
         user_id: auth.userId!,
+        alias_email: aliasEmail,
         is_honeypot: true,
-        service_label: parsed.data.planted_at_service,
-        label: parsed.data.label,
+        service_label: serviceLabel,
+        type: 'email',
+        status: 'active',
       })
       .select()
       .single();
