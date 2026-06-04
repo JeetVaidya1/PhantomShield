@@ -24,6 +24,8 @@ export const RATE_LIMITS = {
   aliasCreation: { limit: 20, windowMs: 3_600_000, keyType: 'user' as const },
   phonePurchase: { limit: 5, windowMs: 86_400_000, keyType: 'user' as const },
   honeypotCreation: { limit: 5, windowMs: 86_400_000, keyType: 'user' as const },
+  domainReportBlocked: { limit: 10, windowMs: 3_600_000, keyType: 'user' as const },
+  familyInvite: { limit: 10, windowMs: 86_400_000, keyType: 'user' as const },
   companyScorePublic: { limit: 60, windowMs: 60_000, keyType: 'ip' as const },
   authSignup: { limit: 5, windowMs: 3_600_000, keyType: 'ip' as const },
   authLogin: { limit: 10, windowMs: 900_000, keyType: 'ip' as const },

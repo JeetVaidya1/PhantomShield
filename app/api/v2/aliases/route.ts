@@ -4,6 +4,18 @@ import { getSupabaseServiceClient } from '@/lib/supabase';
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logAudit } from '@/lib/audit';
 import { aliasCreateSchema } from '@/lib/validations/v2-schemas';
+import { selectDomainForNewAlias } from '@/lib/email/domains';
+import { generateAliasAddress } from '@/lib/email/alias-address';
+import { createAlias } from '@/lib/email/alias-sync';
+
+/**
+ * SimpleLogin + multi-domain alias provisioning is active only when the bridge
+ * is configured (SIMPLELOGIN_DB_URI). Otherwise we fall back to the original
+ * single-domain Cloudflare flow — see CLAUDE.md's phased email rollout. (v2-013)
+ */
+function simpleLoginEnabled(): boolean {
+  return Boolean(process.env.SIMPLELOGIN_DB_URI);
+}
 
 const FREE_ALIAS_LIMIT = 3;
 
@@ -55,13 +67,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate random alias email
-    const aliasEmail = crypto.randomBytes(8).toString('hex') + '@phantomdefender.com';
+    // Select sending domain + generate the alias address. With SimpleLogin
+    // enabled, spread aliases across verified domains; otherwise fall back to
+    // the single Cloudflare domain.
+    let aliasEmail: string;
+    let domainId: string | null = null;
+    let simpleloginAliasId: number | null = null;
+
+    if (simpleLoginEnabled()) {
+      const domain = await selectDomainForNewAlias(supabase, auth.userId!);
+      domainId = domain.id;
+      aliasEmail = generateAliasAddress(domain.domain);
+    } else {
+      aliasEmail = crypto.randomBytes(8).toString('hex') + '@phantomdefender.com';
+    }
 
     // Build service_label: "Label — Service" if service provided, else just label
     const serviceLabel = parsed.data.service_label
       ? `${parsed.data.label} — ${parsed.data.service_label}`
       : parsed.data.label;
+
+    // Create the forwarding alias in SimpleLogin before persisting our record,
+    // so a bridge failure aborts cleanly without leaving an orphan identity.
+    if (simpleLoginEnabled()) {
+      const sl = await createAlias(auth.userId!, aliasEmail, parsed.data.forwarding_email);
+      simpleloginAliasId = sl.simpleloginAliasId;
+    }
 
     const { data: identity, error } = await supabase
       .from('identities')
@@ -73,6 +104,8 @@ export async function POST(request: Request) {
         is_honeypot: false,
         type: 'email',
         status: 'active',
+        domain_id: domainId,
+        simplelogin_alias_id: simpleloginAliasId,
       })
       .select()
       .single();
@@ -83,10 +116,15 @@ export async function POST(request: Request) {
 
     await logAudit({
       userId: auth.userId!,
-      action: 'alias_created',
+      action: 'identity_created',
       resourceType: 'identity',
       resourceId: identity.id,
-      metadata: { service_label: serviceLabel, alias_email: aliasEmail },
+      metadata: {
+        service_label: serviceLabel,
+        alias_email: aliasEmail,
+        domain_id: domainId,
+        simplelogin_alias_id: simpleloginAliasId,
+      },
       request,
     });
 

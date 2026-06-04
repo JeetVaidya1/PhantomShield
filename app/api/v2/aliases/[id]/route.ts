@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabase';
 import { logAudit } from '@/lib/audit';
+import { deactivateAlias } from '@/lib/email/alias-sync';
 
 export async function DELETE(
   request: Request,
@@ -24,6 +25,11 @@ export async function DELETE(
 
     if (error || !identity) {
       return Response.json({ error: 'Alias not found or already deleted' }, { status: 404 });
+    }
+
+    // Disable the matching SimpleLogin alias so it stops forwarding.
+    if (process.env.SIMPLELOGIN_DB_URI && identity.simplelogin_alias_id) {
+      await deactivateAlias(Number(identity.simplelogin_alias_id));
     }
 
     await logAudit({

@@ -215,7 +215,7 @@
             "Test: mock pg client, verify correct SQL queries",
             "Test: connection failure retries 3 times then throws"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-012",
@@ -235,7 +235,7 @@
             "Test: all domains blocked returns error with clear message",
             "Test: report-blocked at threshold 10 deactivates domain"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-013",
@@ -252,7 +252,7 @@
             "Test: new identity creates SimpleLogin alias and stores IDs",
             "Test: killed identity deactivates SimpleLogin alias"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-014",
