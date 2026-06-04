@@ -70,6 +70,11 @@ export const digestSettingsSchema = z.object({
   digest_day: z.number().int().min(0).max(6).optional(),
 });
 
+// ---- Family ----
+export const familyInviteSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
 // ---- Autopilot Settings ----
 export const autopilotSettingsSchema = z.object({
   autopilot_enabled: z.boolean(),
