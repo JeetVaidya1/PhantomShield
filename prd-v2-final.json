@@ -271,7 +271,7 @@
             "Test: 3 hard bounces triggers auto-disable + push notification",
             "Test: invalid signature returns 401"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
@@ -305,7 +305,7 @@
             "Test: email with no trackers → forwarded unchanged, count = 0",
             "Test: plain text email → forwarded unchanged"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-016",
