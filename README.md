@@ -12,8 +12,8 @@ Built with zero-knowledge encryption. We couldn't read your data even if we want
 
 - **Zero-knowledge architecture** — AES-256-GCM client-side encryption, PBKDF2 with 600K iterations. Server stores encrypted blobs and never sees plaintext.
 - **Full stack** — Next.js 14, Supabase (PostgreSQL + RLS), Stripe, Cloudflare Email Routing, Twilio, OpenAI `gpt-4o-mini`.
-- **280 passing tests** across auth, payments, email routing, and encryption paths.
-- **42 API routes**, 15 database tables, 20 Row Level Security policies.
+- **371 passing tests** (plus 12 for the Python tracker-stripper service) across auth, payments, email routing, encryption, digests, autopilot, and the family plan.
+- **42 API route handlers**, 15 database tables, 20 Row Level Security policies.
 - **Built solo** on a 3-agent CI pipeline: a feature-builder writes, a security-auditor reviews, a test-runner gates merges.
 - **~99% gross margin** on the no-phone plan at the $9.99 price point (see Unit Economics below).
 
@@ -283,7 +283,7 @@ phantom-defender/
 │       ├── feature-builder.md
 │       ├── security-auditor.md
 │       └── test-runner.md
-└── __tests__/                   # 280+ tests across 25 files
+└── __tests__/                   # 371 tests across 38 files
 ```
 
 ---
@@ -344,7 +344,7 @@ npm test
 npm test -- --testPathPattern="auth-crypto"
 ```
 
-280+ tests across 25 test files covering all endpoints, encryption, validation, and webhook handling.
+371 tests across 38 test files covering all endpoints, encryption, validation, digests, autopilot, family plan, and webhook handling. The Python tracker-stripper service has its own 12-test suite (`python3 -m unittest discover -s email-server/tracker-stripper`).
 
 ### Deployment
 
@@ -387,7 +387,7 @@ npx vercel --prod
 
 ### Completed
 - [x] V1: Core identity management (78 stories, 260+ tests)
-- [x] V2: Intelligence features (20 stories, 280+ tests)
+- [x] V2: Intelligence features (36 stories, 371 tests) — phone-provider abstraction, SimpleLogin bridge, multi-domain aliasing, email-events webhook, tracker-stripper service, email digests, in-app viewer, autopilot cron + review, family plan. (Telnyx stories v2-007/009/010 intentionally dropped — V2 standardized on Twilio.)
 - [x] Zero-knowledge auth (no email signup)
 - [x] Web app dashboard
 - [x] Stripe payments integration
