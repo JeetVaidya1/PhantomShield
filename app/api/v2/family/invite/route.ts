@@ -1,8 +1,14 @@
+import crypto from 'crypto';
 import { getAuthUser } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabase';
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logAudit } from '@/lib/audit';
 import { familyInviteSchema } from '@/lib/validations/v2-schemas';
+
+/** Hash an invitee email for the audit trail so a third party's PII isn't stored verbatim. */
+function hashEmail(email: string): string {
+  return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 16);
+}
 
 /**
  * POST /api/v2/family/invite (v2-038) — owner invites a member by email.
@@ -72,7 +78,7 @@ export async function POST(request: Request) {
       action: 'family_invite_sent',
       resourceType: 'family',
       resourceId: family.id,
-      metadata: { invite_email: parsed.data.email },
+      metadata: { invite_email_hash: hashEmail(parsed.data.email) },
       request,
     });
 

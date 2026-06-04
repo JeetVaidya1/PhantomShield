@@ -34,7 +34,7 @@ export class TwilioProvider implements PhoneProvider {
   }
 
   private smsWebhookUrl(): string {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://phantom-shield-theta.vercel.app';
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://phantomdefender.com';
     return `${base}/api/webhooks/twilio-sms`;
   }
 

@@ -75,6 +75,34 @@ export function formatDigestHtml(summaries: EmailSummaryRow[]): string {
 }
 
 /**
+ * Deliver a compiled digest body via the configured outgoing mail relay
+ * (SimpleLogin's DKIM-signing SMTP, fronted by an HTTP relay on the VPS).
+ * Best-effort and gated on DIGEST_RELAY_URL — never throws, so a relay outage
+ * can't abort the cron. Returns whether delivery was attempted.
+ */
+export async function deliverDigest(userId: string, html: string): Promise<{ delivered: boolean }> {
+  const relayUrl = process.env.DIGEST_RELAY_URL;
+  if (!relayUrl) {
+    // No relay configured (e.g. local/dev): the batch is still recorded.
+    return { delivered: false };
+  }
+  try {
+    const res = await fetch(relayUrl, {
+      method: 'POST',
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${process.env.DIGEST_RELAY_SECRET ?? ''}`,
+      },
+      body: JSON.stringify({ user_id: userId, html }),
+    });
+    return { delivered: res.ok };
+  } catch {
+    return { delivered: false };
+  }
+}
+
+/**
  * Compile and "send" a digest for one user. Returns whether a digest was sent
  * and how many emails it contained. Users with no pending emails are skipped.
  */
@@ -96,7 +124,7 @@ export async function processDigestForUser(
     return { sent: false, emailCount: 0 };
   }
 
-  const { data: batch } = await supabase
+  const { data: batch, error: batchError } = await supabase
     .from('digest_batches')
     .insert({
       user_id: settings.user_id,
@@ -108,15 +136,21 @@ export async function processDigestForUser(
     .select()
     .single();
 
-  const batchId = batch?.id as string | undefined;
+  // If we couldn't record the batch, do NOT mark the summaries forwarded —
+  // otherwise they'd be silently lost. Leave them for the next cron tick.
+  if (batchError || !batch?.id) {
+    return { sent: false, emailCount: 0 };
+  }
+  const batchId = batch.id as string;
 
-  // formatDigestHtml(summaries) is the body delivered via SimpleLogin's
-  // outgoing SMTP (DKIM-signed) by the mail relay; compiled here.
-  formatDigestHtml(summaries);
+  // Hand the compiled digest body to the mail relay (SimpleLogin's outgoing
+  // SMTP, DKIM-signed). Delivery is best-effort and gated on a configured relay.
+  const html = formatDigestHtml(summaries);
+  await deliverDigest(settings.user_id, html);
 
   await supabase
     .from('email_summaries')
-    .update({ forwarded: true, digest_batch_id: batchId ?? null })
+    .update({ forwarded: true, digest_batch_id: batchId })
     .in(
       'id',
       summaries.map((s) => s.id)

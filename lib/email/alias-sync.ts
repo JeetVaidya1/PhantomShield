@@ -90,13 +90,24 @@ async function resolveMailboxId(forwardingEmail: string): Promise<number> {
     return existing.rows[0].id as number;
   }
 
+  // ON CONFLICT guards against a concurrent insert for the same mailbox.
   const created = await client.query(
     `INSERT INTO mailbox (user_id, email, verified, created_at, updated_at)
      VALUES ($1, $2, true, NOW(), NOW())
+     ON CONFLICT (user_id, email) DO NOTHING
      RETURNING id`,
     [userId, forwardingEmail]
   );
-  return created.rows[0].id as number;
+  if (created.rows.length > 0) {
+    return created.rows[0].id as number;
+  }
+
+  // Lost the race: the row now exists — re-select it.
+  const reselect = await client.query(
+    'SELECT id FROM mailbox WHERE user_id = $1 AND email = $2 LIMIT 1',
+    [userId, forwardingEmail]
+  );
+  return reselect.rows[0].id as number;
 }
 
 export interface CreatedAlias {

@@ -89,10 +89,12 @@ async function processAutopilotUser(
   }
 
   // Auto-kill mode: deactivate each stale identity (scoped to the user).
+  // Use the same 'deactivated' status as the manual autopilot/kill and nuke
+  // paths so the review UI shows consistent state regardless of trigger.
   const ids = stale.map((s) => s.identity_id);
   await supabase
     .from('identities')
-    .update({ status: 'killed' })
+    .update({ status: 'deactivated' })
     .in('id', ids)
     .eq('user_id', user.user_id);
 

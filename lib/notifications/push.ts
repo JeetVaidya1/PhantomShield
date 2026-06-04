@@ -48,6 +48,8 @@ export async function sendPushNotification(
 
     const res = await fetch(EXPO_PUSH_ENDPOINT, {
       method: 'POST',
+      // Cap the call so a slow Expo endpoint can't stall the webhook/cron caller.
+      signal: AbortSignal.timeout(5000),
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         to: token,

@@ -90,7 +90,7 @@ describe('v2-030: Autopilot monthly cron', () => {
     const res = await POST(cronReq());
     const json = await res.json();
     expect(json).toMatchObject({ processed: 1, killed: 1 });
-    expect(killUpdateSpy).toHaveBeenCalledWith({ status: 'killed' }, ['id-1'], 'u2');
+    expect(killUpdateSpy).toHaveBeenCalledWith({ status: 'deactivated' }, ['id-1'], 'u2');
     expect(pushMock).toHaveBeenCalledWith('u2', expect.objectContaining({ body: expect.stringContaining('Auto-killed') }));
   });
 
