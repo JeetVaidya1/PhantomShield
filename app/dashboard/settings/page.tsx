@@ -335,7 +335,7 @@ export default function SettingsPage() {
           </div>
           <div className="divide-y divide-[#1f2937]">
             <a
-              href="#"
+              href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between px-5 py-3.5 hover:bg-[#0a0e17]/40 transition-colors group"
@@ -346,7 +346,7 @@ export default function SettingsPage() {
               </svg>
             </a>
             <a
-              href="#"
+              href="/terms"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between px-5 py-3.5 hover:bg-[#0a0e17]/40 transition-colors group"

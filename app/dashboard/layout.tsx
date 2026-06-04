@@ -327,15 +327,20 @@ function DashboardShell({ children }: { children: ReactNode }) {
 
             {/* Right side */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Notification bell */}
-              <button className="relative text-[#64748b] hover:text-[#e2e8f0] transition-colors">
+              {/* Notification bell → leak alerts (badge counts active leaks) */}
+              <Link
+                href="/dashboard/leaks"
+                className="relative text-[#64748b] hover:text-[#e2e8f0] transition-colors"
+                title={stats.leaksDetected > 0 ? `${stats.leaksDetected} active leak alert(s)` : 'No new alerts'}
+                aria-label="View leak alerts"
+              >
                 <BellIcon />
                 {stats.leaksDetected > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ef4444] text-[9px] font-bold text-white flex items-center justify-center">
                     {stats.leaksDetected}
                   </span>
                 )}
-              </button>
+              </Link>
 
               {/* Plan badge (mobile) */}
               <Link

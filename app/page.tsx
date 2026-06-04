@@ -562,11 +562,11 @@ export default function LandingPage() {
 
           {/* Links */}
           <div className="flex items-center justify-center gap-6 mb-8">
-            <a href="#" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">Privacy Policy</a>
+            <a href="/privacy" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">Privacy Policy</a>
             <span className="text-[#1f2937]">&middot;</span>
-            <a href="#" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">Terms</a>
+            <a href="/terms" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">Terms</a>
             <span className="text-[#1f2937]">&middot;</span>
-            <a href="https://github.com/JeetVaidya1/PhantomShield" target="_blank" rel="noopener noreferrer" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">
+            <a href="https://github.com/JeetVaidya1/PhantomDefender" target="_blank" rel="noopener noreferrer" className="text-xs text-[#64748b] hover:text-[#22d3ee] transition-colors">
               GitHub
             </a>
           </div>

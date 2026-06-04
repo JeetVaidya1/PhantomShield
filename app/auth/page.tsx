@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -16,11 +16,10 @@ function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // If already authenticated, redirect to dashboard
-  if (token) {
-    router.push('/dashboard');
-    return null;
-  }
+  // If already authenticated, redirect to dashboard (side effect, not during render).
+  useEffect(() => {
+    if (token) router.push('/dashboard');
+  }, [token, router]);
 
   const validate = (): string | null => {
     if (username.length < 3) return 'Username must be at least 3 characters';
