@@ -428,7 +428,7 @@
             "Test: user with 0 unforwarded emails skipped",
             "Test: cron rejects requests without valid CRON_SECRET"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-022",
@@ -444,7 +444,7 @@
             "Changes saved optimistically with rollback on error",
             "Explanation text for each mode so user understands what happens"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "v2-023",
@@ -463,7 +463,7 @@
             "Requires biometric to view (contains decrypted email content)",
             "Works offline for cached/decrypted emails"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
