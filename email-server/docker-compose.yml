@@ -1,0 +1,73 @@
+# Phantom Defender email engine — runs on the VPS.
+#
+# Mail flow:  Postfix (:25) -> tracker-stripper (:20380) -> sl-email (:20381) -> recipient inbox
+#
+# Bring up with:  docker compose up -d   (run from /opt/phantomdefender/email-server)
+# Requires a sibling simplelogin.env (see .env.example) and DKIM keys (see SETUP.md).
+services:
+  sl-db:
+    image: postgres:16
+    container_name: sl-db
+    restart: always
+    environment:
+      POSTGRES_USER: sl_user
+      POSTGRES_DB: simplelogin
+      POSTGRES_PASSWORD: ${SL_DB_PASSWORD}
+    volumes:
+      - ./sl-db:/var/lib/postgresql/data
+    # Exposed to the host so the Vercel app's bridge can reach it. See SETUP.md
+    # "Wrinkle 1" — lock this down with the firewall + SSL, or a tunnel.
+    ports:
+      - "0.0.0.0:5432:5432"
+    networks: [sl-network]
+
+  sl-email:
+    image: simplelogin/app:3.4.0
+    container_name: sl-email
+    restart: always
+    depends_on: [sl-db]
+    command: python email_handler.py
+    volumes:
+      - ./sl:/sl
+      - ./sl/upload:/code/static/upload
+      - ./simplelogin.env:/code/.env
+      - ./dkim.key:/dkim.key
+      - ./dkim.pub.key:/dkim.pub.key
+    # Only reachable inside the compose network (from the tracker-stripper).
+    expose: ["20381"]
+    networks: [sl-network]
+
+  sl-job-runner:
+    image: simplelogin/app:3.4.0
+    container_name: sl-job-runner
+    restart: always
+    depends_on: [sl-db]
+    command: python job_runner.py
+    volumes:
+      - ./sl:/sl
+      - ./sl/upload:/code/static/upload
+      - ./simplelogin.env:/code/.env
+      - ./dkim.key:/dkim.key
+      - ./dkim.pub.key:/dkim.pub.key
+    networks: [sl-network]
+
+  tracker-stripper:
+    build: ./tracker-stripper
+    container_name: tracker-stripper
+    restart: always
+    depends_on: [sl-email]
+    environment:
+      STRIPPER_HOST: 0.0.0.0
+      STRIPPER_PORT: "20380"
+      SIMPLELOGIN_HOST: sl-email      # forward cleaned mail here
+      SIMPLELOGIN_PORT: "20381"
+      TRACKER_STATS_WEBHOOK_URL: ${TRACKER_STATS_WEBHOOK_URL}
+      TRACKER_WEBHOOK_SECRET: ${TRACKER_WEBHOOK_SECRET}
+    # Postfix on the host delivers to this port.
+    ports:
+      - "127.0.0.1:20380:20380"
+    networks: [sl-network]
+
+networks:
+  sl-network:
+    driver: bridge
