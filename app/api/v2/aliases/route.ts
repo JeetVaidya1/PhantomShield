@@ -151,12 +151,15 @@ export async function GET(request: Request) {
 
     const supabase = getSupabaseServiceClient();
 
+    // Real aliases plus retired tripwires (honeypots flipped on exit), so the
+    // whole relationship lifecycle stays visible in one place. Standalone
+    // honeypots (planted, never an alias) live on the Honeypots page only.
     const { data: aliases, error } = await supabase
       .from('identities')
       .select('*')
       .eq('user_id', auth.userId!)
-      .eq('is_honeypot', false)
       .eq('type', 'email')
+      .or('is_honeypot.eq.false,status.eq.retired')
       .order('created_at', { ascending: false });
 
     if (error) {
