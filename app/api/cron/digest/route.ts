@@ -21,3 +21,8 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// Vercel Cron triggers GET; delegate to the same handler.
+export async function GET(request: Request) {
+  return POST(request);
+}

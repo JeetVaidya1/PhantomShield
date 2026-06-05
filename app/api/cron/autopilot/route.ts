@@ -113,3 +113,8 @@ async function processAutopilotUser(
 
   return { notified: 1, killed: ids.length };
 }
+
+// Vercel Cron triggers GET; delegate to the same handler.
+export async function GET(request: Request) {
+  return POST(request);
+}
