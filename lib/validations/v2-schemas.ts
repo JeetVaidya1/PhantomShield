@@ -100,11 +100,41 @@ export const serviceLabelSchema = z
   .pipe(z.string().min(1))
   .optional();
 
+// ---- Vendor domain (the site a relationship was created for) ----
+// Lower-cased bare host, e.g. "netflix.com". Drives leak attribution + GDPR
+// routing. Accepts a full URL or a bare domain; normalized to the host.
+export const vendorDomainSchema = z
+  .string()
+  .max(253)
+  .transform((raw) => {
+    const trimmed = raw.trim().toLowerCase();
+    const withoutScheme = trimmed.replace(/^[a-z]+:\/\//, '');
+    const host = withoutScheme.split('/')[0].split('?')[0].replace(/^www\./, '');
+    return host;
+  })
+  .pipe(z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, 'Invalid domain'))
+  .optional();
+
+// ---- Per-relationship inbox policy ----
+export const mutePolicySchema = z.enum(['all', 'transactional_only', 'silent']);
+
 // ---- Alias Creation ----
 export const aliasCreateSchema = z.object({
   label: aliasLabelSchema,
   service_label: serviceLabelSchema,
+  vendor_domain: vendorDomainSchema,
   forwarding_email: z.string().min(1, 'Forwarding email is required').email('Invalid forwarding email'),
+});
+
+// ---- Relationship retire (per-vendor exit) ----
+export const retireSchema = z.object({
+  mode: z.enum(['kill', 'honeypot']),
+  request_type: z.enum(['gdpr_erasure', 'ccpa_deletion']).default('gdpr_erasure'),
+});
+
+// ---- Relationship mute update ----
+export const muteUpdateSchema = z.object({
+  mute_policy: mutePolicySchema,
 });
 
 // ---- Leak Dismiss ----

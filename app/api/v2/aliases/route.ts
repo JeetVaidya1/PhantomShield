@@ -104,6 +104,9 @@ export async function POST(request: Request) {
         user_id: auth.userId!,
         alias_email: aliasEmail,
         service_label: serviceLabel,
+        // Captured vendor host (e.g. "netflix.com") — drives precise leak
+        // attribution and GDPR routing when this relationship is retired.
+        vendor_domain: parsed.data.vendor_domain ?? null,
         is_honeypot: false,
         type: 'email',
         status: 'active',

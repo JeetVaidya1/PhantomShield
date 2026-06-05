@@ -3,7 +3,7 @@ import { getSupabaseServiceClient } from '@/lib/supabase';
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logAudit } from '@/lib/audit';
 import { nukeConfirmSchema } from '@/lib/validations/v2-schemas';
-import { getTemplate } from '@/lib/gdpr/templates';
+import { retireIdentity } from '@/lib/identity/retire';
 
 export async function POST(request: Request) {
   try {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     // Step 1: Get all active identities
     const { data: identities, error: idError } = await supabase
       .from('identities')
-      .select('id, alias_email, service_label, type, status')
+      .select('id, alias_email, service_label, vendor_domain, type, status, simplelogin_alias_id')
       .eq('user_id', auth.userId!)
       .eq('status', 'active');
 
@@ -50,58 +50,19 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Failed to fetch identities' }, { status: 500 });
     }
 
-    // Step 2: Deactivate all identities
+    // Step 2+3: Retire every relationship through the shared exit routine —
+    // identical logic to the per-relationship "I'm done with this" action,
+    // run across the whole account. Kill mode: stop forwarding + erasure.
     let identitiesKilled = 0;
-    for (const identity of identities || []) {
-      const { error } = await supabase
-        .from('identities')
-        .update({ status: 'deactivated' })
-        .eq('id', identity.id)
-        .eq('user_id', auth.userId!);
-
-      if (!error) {
-        identitiesKilled++;
-      }
-    }
-
-    // Step 3: Send GDPR deletion emails for identities with service_label
     let gdprEmailsSent = 0;
     for (const identity of identities || []) {
-      if (!identity.service_label || !identity.alias_email) continue;
-
-      // Look up company contact
-      const { data: contact } = await supabase
-        .from('company_privacy_contacts')
-        .select('privacy_email')
-        .eq('company_domain', identity.service_label.toLowerCase().trim())
-        .single();
-
-      if (contact?.privacy_email) {
-        // Generate GDPR email template
-        const _emailBody = getTemplate(
-          'gdpr_erasure',
-          identity.alias_email,
-          identity.service_label
-        );
-
-        // Create deletion request record
-        const sentAt = new Date();
-        const responseDeadline = new Date(sentAt);
-        responseDeadline.setDate(responseDeadline.getDate() + 30);
-
-        await supabase.from('deletion_requests').insert({
-          user_id: auth.userId!,
-          identity_id: identity.id,
-          company_name: identity.service_label,
-          company_email: contact.privacy_email,
-          request_type: 'gdpr_erasure',
-          status: 'sent',
-          sent_at: sentAt.toISOString(),
-          response_deadline: responseDeadline.toISOString(),
-        });
-
-        gdprEmailsSent++;
-      }
+      const result = await retireIdentity(supabase, {
+        identity,
+        userId: auth.userId!,
+        mode: 'kill',
+      });
+      identitiesKilled++;
+      if (result.gdprRequestRecorded) gdprEmailsSent++;
     }
 
     // Step 4: Soft-delete user account (set deleted_at, recoverable 30 days)

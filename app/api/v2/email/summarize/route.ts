@@ -1,6 +1,32 @@
 import { classifyEmail } from '@/lib/email/classifier';
 import { summarizeEmail } from '@/lib/email/summarizer';
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
+import { getSupabaseServiceClient } from '@/lib/supabase';
+import { shouldForward, type MutePolicy } from '@/lib/email/forward-policy';
+
+const RETIRED_STATUSES = new Set(['killed', 'retired', 'deactivated', 'disabled']);
+
+/**
+ * Resolve a relationship's forwarding posture from its alias address. The VPS
+ * uses the returned `forward` flag to deliver-or-digest; mute policy and retired
+ * state are authoritative server-side, not the VPS's call.
+ */
+async function relationshipPolicy(
+  aliasEmail: string | undefined
+): Promise<{ mutePolicy: MutePolicy | null; retired: boolean }> {
+  if (!aliasEmail) return { mutePolicy: null, retired: false };
+  const supabase = getSupabaseServiceClient();
+  const { data } = await supabase
+    .from('identities')
+    .select('mute_policy, status, is_honeypot')
+    .eq('alias_email', aliasEmail)
+    .single();
+  if (!data) return { mutePolicy: null, retired: false };
+  return {
+    mutePolicy: (data.mute_policy as MutePolicy | null) ?? null,
+    retired: RETIRED_STATUSES.has(String(data.status)) || Boolean(data.is_honeypot),
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { subject, from, body_preview, user_id } = body;
+    const { subject, from, body_preview, user_id, alias_email } = body;
 
     if (!subject || !from) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -41,7 +67,10 @@ export async function POST(request: Request) {
       summary = await summarizeEmail(subject, safePreview);
     }
 
-    return Response.json({ type, summary });
+    const { mutePolicy, retired } = await relationshipPolicy(alias_email);
+    const forward = shouldForward({ type, mutePolicy, retired });
+
+    return Response.json({ type, summary, forward });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
