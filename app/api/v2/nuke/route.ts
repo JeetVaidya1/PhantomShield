@@ -39,12 +39,13 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseServiceClient();
 
-    // Step 1: Get all active identities
+    // Step 1: Get every live identity — active aliases AND retired honeypot
+    // tripwires (still receiving), so the nuke leaves nothing forwarding.
     const { data: identities, error: idError } = await supabase
       .from('identities')
       .select('id, alias_email, service_label, vendor_domain, type, status, simplelogin_alias_id')
       .eq('user_id', auth.userId!)
-      .eq('status', 'active');
+      .in('status', ['active', 'retired']);
 
     if (idError) {
       return Response.json({ error: 'Failed to fetch identities' }, { status: 500 });

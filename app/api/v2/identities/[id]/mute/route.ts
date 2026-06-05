@@ -43,6 +43,22 @@ export async function PATCH(
 
     const supabase = getSupabaseServiceClient();
 
+    // Mute policy only governs a live alias; reject updates to retired/killed
+    // relationships so the audit trail doesn't record meaningless changes.
+    const { data: existing } = await supabase
+      .from('identities')
+      .select('status')
+      .eq('id', params.id)
+      .eq('user_id', auth.userId!)
+      .single();
+
+    if (!existing) {
+      return Response.json({ error: 'Relationship not found' }, { status: 404 });
+    }
+    if (existing.status !== 'active') {
+      return Response.json({ error: 'Cannot change inbox policy on a retired relationship' }, { status: 409 });
+    }
+
     const { data: identity, error } = await supabase
       .from('identities')
       .update({ mute_policy: parsed.data.mute_policy })

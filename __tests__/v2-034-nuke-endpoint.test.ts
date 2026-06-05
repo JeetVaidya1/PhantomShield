@@ -28,7 +28,7 @@ vi.mock('../lib/supabase', () => ({
         return {
           select: () => ({
             eq: (_f: string, _v: string) => ({
-              eq: (_f2: string, _v2: string) =>
+              in: (_f2: string, _vals: string[]) =>
                 Promise.resolve({ data: mockIdentities, error: null }),
             }),
           }),

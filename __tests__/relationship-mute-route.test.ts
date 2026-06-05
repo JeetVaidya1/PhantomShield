@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockUpdate = vi.fn();
 const mockAuditInsert = vi.fn().mockResolvedValue({ error: null });
+let mockExistingRow: Record<string, unknown> | null = { status: 'active' };
 let mockUpdatedRow: Record<string, unknown> | null = { id: 'rel-1', mute_policy: 'silent' };
 
 vi.mock('../lib/supabase', () => ({
@@ -12,6 +13,11 @@ vi.mock('../lib/supabase', () => ({
     from: (table: string) => {
       if (table === 'identities') {
         return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({ single: () => Promise.resolve({ data: mockExistingRow, error: mockExistingRow ? null : { message: 'nf' } }) }),
+            }),
+          }),
           update: mockUpdate.mockReturnValue({
             eq: () => ({
               eq: () => ({
@@ -40,6 +46,7 @@ function req(body: unknown) {
 beforeEach(() => {
   mockUpdate.mockClear();
   mockAuditInsert.mockClear();
+  mockExistingRow = { status: 'active' };
   mockUpdatedRow = { id: 'rel-1', mute_policy: 'silent' };
 });
 
@@ -58,8 +65,15 @@ describe('PATCH /api/v2/identities/[id]/mute', () => {
   });
 
   it('404s when the relationship is missing', async () => {
-    mockUpdatedRow = null;
+    mockExistingRow = null;
     const res = await PATCH(req({ mute_policy: 'all' }), { params: { id: 'rel-1' } });
     expect(res.status).toBe(404);
+  });
+
+  it('409s when the relationship is already retired', async () => {
+    mockExistingRow = { status: 'retired' };
+    const res = await PATCH(req({ mute_policy: 'all' }), { params: { id: 'rel-1' } });
+    expect(res.status).toBe(409);
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

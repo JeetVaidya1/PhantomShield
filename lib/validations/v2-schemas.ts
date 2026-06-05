@@ -109,7 +109,12 @@ export const vendorDomainSchema = z
   .transform((raw) => {
     const trimmed = raw.trim().toLowerCase();
     const withoutScheme = trimmed.replace(/^[a-z]+:\/\//, '');
-    const host = withoutScheme.split('/')[0].split('?')[0].replace(/^www\./, '');
+    // Drop any path, query, port, then a leading www.
+    const host = withoutScheme
+      .split('/')[0]
+      .split('?')[0]
+      .split(':')[0]
+      .replace(/^www\./, '');
     return host;
   })
   .pipe(z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, 'Invalid domain'))

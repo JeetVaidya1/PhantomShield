@@ -128,4 +128,10 @@ describe('POST /api/v2/identities/[id]/retire', () => {
     const res = await POST(req({ mode: 'kill' }), { params: { id: 'rel-1' } });
     expect(res.status).toBe(409);
   });
+
+  it('409s when re-retiring a honeypot tripwire (already retired)', async () => {
+    mockIdentity = { ...(mockIdentity as object), status: 'retired' };
+    const res = await POST(req({ mode: 'kill' }), { params: { id: 'rel-1' } });
+    expect(res.status).toBe(409);
+  });
 });

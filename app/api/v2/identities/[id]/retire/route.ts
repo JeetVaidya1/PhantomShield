@@ -5,6 +5,9 @@ import { logAudit } from '@/lib/audit';
 import { retireSchema } from '@/lib/validations/v2-schemas';
 import { retireIdentity } from '@/lib/identity/retire';
 
+// Any status that means the relationship is no longer a live alias.
+const ALREADY_RETIRED = new Set(['killed', 'retired', 'deactivated', 'disabled']);
+
 /**
  * POST /api/v2/identities/[id]/retire
  *
@@ -55,7 +58,9 @@ export async function POST(
     if (error || !identity) {
       return Response.json({ error: 'Relationship not found' }, { status: 404 });
     }
-    if (identity.status === 'killed') {
+    // Block any already-retired state so a honeypot can't be re-retired into a
+    // kill (which would fire a second deletion request for the same vendor).
+    if (ALREADY_RETIRED.has(identity.status ?? '')) {
       return Response.json({ error: 'Relationship already retired' }, { status: 409 });
     }
 

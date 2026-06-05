@@ -105,7 +105,7 @@ async function recordErasureRequest(
   const responseDeadline = new Date(sentAt);
   responseDeadline.setDate(responseDeadline.getDate() + GDPR_RESPONSE_WINDOW_DAYS);
 
-  await supabase.from('deletion_requests').insert({
+  const { error } = await supabase.from('deletion_requests').insert({
     user_id: userId,
     identity_id: identity.id,
     company_name: vendorDisplayName(identity),
@@ -116,7 +116,8 @@ async function recordErasureRequest(
     response_deadline: responseDeadline.toISOString(),
   });
 
-  return true;
+  // Don't claim an erasure was recorded if the insert failed.
+  return !error;
 }
 
 export async function retireIdentity(
@@ -129,11 +130,15 @@ export async function retireIdentity(
   // 'kill' fully burns the alias; 'honeypot' keeps it receiving as a tripwire.
   const newStatus: 'killed' | 'retired' = mode === 'kill' ? 'killed' : 'retired';
 
+  // 'kill' deactivates the SimpleLogin alias so it stops receiving entirely.
+  // 'honeypot' intentionally leaves SimpleLogin active so the tripwire keeps
+  // receiving; delivery to the user is suppressed by the forward-policy layer
+  // (shouldForward returns false for a retired relationship), not here.
   if (mode === 'kill') {
     await stopForwarding(identity.simplelogin_alias_id);
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('identities')
     .update({
       status: newStatus,
@@ -143,6 +148,12 @@ export async function retireIdentity(
     })
     .eq('id', identity.id)
     .eq('user_id', userId);
+
+  // A swallowed failure here would falsely report the relationship retired and
+  // still record a deletion request — surface it so the caller returns 500.
+  if (updateError) {
+    throw new Error(`Failed to retire identity ${identity.id}: ${updateError.message}`);
+  }
 
   const gdprRequestRecorded = await recordErasureRequest(
     supabase,
