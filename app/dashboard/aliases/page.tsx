@@ -5,18 +5,31 @@ import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 
+type MutePolicy = 'all' | 'transactional_only' | 'silent';
+type RetireMode = 'kill' | 'honeypot';
+
 interface Alias {
   id: string;
   alias_email: string;
   service_label: string | null;
+  vendor_domain?: string | null;
   forwarding_email: string | null;
   status: string;
+  mute_policy?: MutePolicy | null;
+  is_honeypot?: boolean;
+  retired_at?: string | null;
   created_at: string;
   emails_received?: number;
   trackers_blocked?: number;
   leak_detected?: boolean;
   last_activity?: string;
 }
+
+const MUTE_OPTIONS: { value: MutePolicy; label: string; hint: string }[] = [
+  { value: 'transactional_only', label: 'Important only', hint: 'OTPs & receipts reach you; marketing is muted' },
+  { value: 'all', label: 'Everything', hint: 'Forward all mail to your inbox' },
+  { value: 'silent', label: 'Silent', hint: 'Nothing reaches your inbox' },
+];
 
 function parseServiceLabel(serviceLabel: string | null) {
   if (!serviceLabel) return { label: 'Unnamed', service: '' };
@@ -59,6 +72,14 @@ function StatusBadge({ status, leak }: { status: string; leak?: boolean }) {
       </span>
     );
   }
+  if (status === 'retired') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-[#f59e0b]/10 text-[#f59e0b]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />
+        TRIPWIRE
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-[#64748b]/10 text-[#64748b]">
       <span className="w-1.5 h-1.5 rounded-full bg-[#64748b]" />
@@ -97,30 +118,71 @@ function SkeletonTable() {
   );
 }
 
+// --- Mute policy segmented control ---
+function MuteControl({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: MutePolicy;
+  disabled: boolean;
+  onChange: (p: MutePolicy) => void;
+}) {
+  const active = MUTE_OPTIONS.find((o) => o.value === value) ?? MUTE_OPTIONS[0];
+  return (
+    <div>
+      <div className="flex items-center gap-1 bg-[#0a0e17] border border-[#1f2937] rounded-lg p-1">
+        {MUTE_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            disabled={disabled}
+            onClick={() => onChange(o.value)}
+            className={`flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
+              o.value === value
+                ? 'bg-[#6366f1] text-white'
+                : 'text-[#94a3b8] hover:text-[#e2e8f0]'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-[#64748b] mt-1.5">{active.hint}</p>
+    </div>
+  );
+}
+
 // --- Detail Panel ---
 function AliasDetail({
   alias,
   onClose,
   onCopy,
-  onKill,
+  onRetire,
+  onMute,
+  busy,
   copied,
 }: {
   alias: Alias;
   onClose: () => void;
   onCopy: () => void;
-  onKill: () => void;
+  onRetire: (mode: RetireMode) => void;
+  onMute: (policy: MutePolicy) => void;
+  busy: boolean;
   copied: boolean;
 }) {
   const { label, service } = parseServiceLabel(alias.service_label);
+  const isLive = alias.status === 'active';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#111827] border border-[#1f2937] rounded-xl p-6 w-full max-w-lg shadow-2xl">
+      <div className="relative bg-[#111827] border border-[#1f2937] rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-start justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-[#e2e8f0]">{label}</h2>
-            {service && <p className="text-sm text-[#94a3b8] mt-0.5">{service}</p>}
+            {(service || alias.vendor_domain) && (
+              <p className="text-sm text-[#94a3b8] mt-0.5">{alias.vendor_domain || service}</p>
+            )}
           </div>
           <button onClick={onClose} className="text-[#64748b] hover:text-[#e2e8f0] transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -160,23 +222,60 @@ function AliasDetail({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          {alias.status === 'active' && (
-            <button
-              onClick={onKill}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-sm font-semibold hover:bg-[#ef4444]/10 transition-colors"
-            >
-              Kill Alias
-            </button>
-          )}
+        {/* Inbox policy */}
+        {isLive && (
+          <div className="mb-6">
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-[#64748b] mb-2">Inbox</p>
+            <MuteControl
+              value={alias.mute_policy ?? 'transactional_only'}
+              disabled={busy}
+              onChange={onMute}
+            />
+          </div>
+        )}
+
+        {/* Retired notice */}
+        {alias.status === 'retired' && (
+          <div className="mb-6 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-lg px-4 py-3">
+            <p className="text-xs text-[#f59e0b] font-semibold mb-0.5">Tripwire armed</p>
+            <p className="text-[11px] text-[#94a3b8]">
+              You left this service and asked for deletion. If they email this alias again, you&apos;ll be alerted — proof they ignored your request or sold your data.
+            </p>
+          </div>
+        )}
+
+        {/* Retire — the per-relationship exit */}
+        {isLive ? (
+          <div className="border-t border-[#1f2937] pt-5">
+            <p className="text-sm font-semibold text-[#e2e8f0] mb-1">Done with this?</p>
+            <p className="text-[11px] text-[#64748b] mb-3">
+              Stops forwarding and sends a deletion request to the company.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                disabled={busy}
+                onClick={() => onRetire('honeypot')}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-[#f59e0b]/30 text-[#f59e0b] text-sm font-semibold hover:bg-[#f59e0b]/10 transition-colors disabled:opacity-50"
+              >
+                Leave a tripwire
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => onRetire('kill')}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-sm font-semibold hover:bg-[#ef4444]/10 transition-colors disabled:opacity-50"
+              >
+                Burn it
+              </button>
+            </div>
+          </div>
+        ) : (
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-[#1f2937] text-[#94a3b8] text-sm font-medium hover:bg-[#1f2937]/50 transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg border border-[#1f2937] text-[#94a3b8] text-sm font-medium hover:bg-[#1f2937]/50 transition-colors"
           >
             Close
           </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -192,6 +291,7 @@ function CreateAliasModal({
 }) {
   const [label, setLabel] = useState('');
   const [service, setService] = useState('');
+  const [website, setWebsite] = useState('');
   const [forwarding, setForwarding] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +306,7 @@ function CreateAliasModal({
         body: JSON.stringify({
           label: label.trim(),
           service_label: service.trim() || undefined,
+          vendor_domain: website.trim() || undefined,
           forwarding_email: forwarding.trim(),
         }),
       });
@@ -264,6 +365,17 @@ function CreateAliasModal({
             />
           </div>
           <div>
+            <label className="block text-[10px] font-semibold tracking-wider uppercase text-[#64748b] mb-1.5">Website (optional)</label>
+            <input
+              type="text"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="e.g. netflix.com"
+              className="w-full rounded-lg bg-[#0a0e17] border border-[#1f2937] px-4 py-2.5 text-sm text-[#e2e8f0] placeholder-[#64748b]/50 focus:outline-none focus:ring-1 focus:ring-[#6366f1] focus:border-[#6366f1] transition-colors"
+            />
+            <p className="text-[10px] text-[#64748b] mt-1.5">Pins this alias to the company — exact leak attribution + auto-routed deletion on exit</p>
+          </div>
+          <div>
             <label className="block text-[10px] font-semibold tracking-wider uppercase text-[#64748b] mb-1.5">Forward To</label>
             <input
               type="email"
@@ -318,6 +430,7 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
   loading,
+  tone = 'danger',
 }: {
   title: string;
   message: string;
@@ -325,7 +438,12 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
   loading: boolean;
+  tone?: 'danger' | 'warning';
 }) {
+  const confirmClass =
+    tone === 'warning'
+      ? 'bg-[#f59e0b] hover:bg-[#d97706]'
+      : 'bg-[#ef4444] hover:bg-[#dc2626]';
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
@@ -342,7 +460,7 @@ function ConfirmDialog({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-[#ef4444] hover:bg-[#dc2626] disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+            className={`flex-1 px-4 py-2.5 rounded-lg ${confirmClass} disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2`}
           >
             {loading && (
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -370,6 +488,8 @@ export default function AliasesPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [retireTarget, setRetireTarget] = useState<{ id: string; mode: RetireMode } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const maxAliases = planTier === 'pro' ? 15 : 3;
   const activeCount = useMemo(() => aliases.filter((a) => a.status === 'active').length, [aliases]);
@@ -407,6 +527,46 @@ export default function AliasesPage() {
       setError('Failed to deactivate alias');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleRetire = async (id: string, mode: RetireMode) => {
+    setBusy(true);
+    try {
+      const res = await apiFetch(`/api/v2/identities/${id}/retire`, {
+        method: 'POST',
+        body: JSON.stringify({ mode }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to retire');
+      }
+      setRetireTarget(null);
+      setSelectedAlias(null);
+      fetchAliases();
+    } catch {
+      setError('Failed to retire this relationship');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMute = async (id: string, policy: MutePolicy) => {
+    // Optimistic: reflect the policy immediately, revert on failure.
+    setBusy(true);
+    setAliases((prev) => prev.map((a) => (a.id === id ? { ...a, mute_policy: policy } : a)));
+    setSelectedAlias((prev) => (prev && prev.id === id ? { ...prev, mute_policy: policy } : prev));
+    try {
+      const res = await apiFetch(`/api/v2/identities/${id}/mute`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mute_policy: policy }),
+      });
+      if (!res.ok) throw new Error('Failed');
+    } catch {
+      setError('Failed to update inbox policy');
+      fetchAliases();
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -580,12 +740,14 @@ export default function AliasesPage() {
           alias={selectedAlias}
           onClose={() => setSelectedAlias(null)}
           onCopy={() => handleCopy(selectedAlias.alias_email, selectedAlias.id)}
-          onKill={() => setDeleteTarget(selectedAlias.id)}
+          onRetire={(mode) => setRetireTarget({ id: selectedAlias.id, mode })}
+          onMute={(policy) => handleMute(selectedAlias.id, policy)}
+          busy={busy}
           copied={copiedId === selectedAlias.id}
         />
       )}
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation (quick row "Kill") */}
       {deleteTarget && (
         <ConfirmDialog
           title="Kill Alias?"
@@ -594,6 +756,23 @@ export default function AliasesPage() {
           onConfirm={() => handleDelete(deleteTarget)}
           onCancel={() => setDeleteTarget(null)}
           loading={deleting}
+        />
+      )}
+
+      {/* Retire Confirmation (per-relationship exit) */}
+      {retireTarget && (
+        <ConfirmDialog
+          title={retireTarget.mode === 'kill' ? 'Burn this relationship?' : 'Leave a tripwire?'}
+          message={
+            retireTarget.mode === 'kill'
+              ? 'Stops forwarding for good and sends a GDPR/CCPA deletion request to the company. You are gone.'
+              : 'Stops forwarding to you and sends a deletion request — but keeps the alias alive as a honeypot. If they email it again, you’ll be alerted that they ignored your request or sold your data.'
+          }
+          confirmLabel={retireTarget.mode === 'kill' ? 'Burn it' : 'Arm tripwire'}
+          tone={retireTarget.mode === 'kill' ? 'danger' : 'warning'}
+          onConfirm={() => handleRetire(retireTarget.id, retireTarget.mode)}
+          onCancel={() => setRetireTarget(null)}
+          loading={busy}
         />
       )}
     </div>

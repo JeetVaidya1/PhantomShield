@@ -86,6 +86,39 @@ describe('v2-014: Email events webhook', () => {
     expect(inserts.leak_detections[0]).toMatchObject({ actual_sender_domain: 'vitamins.example' });
   });
 
+  it('vendor_domain gives precise leak attribution (subdomain is not a leak)', async () => {
+    aliasRow = { id: 'id-1', user_id: 'user-1', service_label: 'Acme', vendor_domain: 'acme.com', bounce_count: 0 };
+    const ok = signedRequest({ event_type: 'forwarded', alias_email: 'a@x.com', from: 'no-reply@mail.acme.com' });
+    await POST(ok);
+    expect(inserts.leak_detections).toBeUndefined();
+
+    const leak = signedRequest({ event_type: 'forwarded', alias_email: 'a@x.com', from: 'someone@databroker.io' });
+    await POST(leak);
+    expect(inserts.leak_detections).toHaveLength(1);
+    expect(inserts.leak_detections[0]).toMatchObject({ expected_sender: 'acme.com', actual_sender_domain: 'databroker.io' });
+  });
+
+  it('a retired honeypot trips the wire instead of logging a leak', async () => {
+    aliasRow = { id: 'id-1', user_id: 'user-1', service_label: 'Store', vendor_domain: 'store.com', is_honeypot: true, bounce_count: 0 };
+    const req = signedRequest({
+      event_type: 'forwarded',
+      alias_email: 'a@x.com',
+      from: 'promo@store.com',
+      subject: 'Still here!',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(inserts.honeypot_triggers).toHaveLength(1);
+    expect(inserts.honeypot_triggers[0]).toMatchObject({
+      identity_id: 'id-1',
+      trigger_from_domain: 'store.com',
+      trigger_subject: 'Still here!',
+    });
+    // Tripwire short-circuits: no leak record even though it's the vendor itself.
+    expect(inserts.leak_detections).toBeUndefined();
+    expect(pushMock).toHaveBeenCalledWith('user-1', expect.objectContaining({ title: 'Caught one' }));
+  });
+
   it('3 hard bounces auto-disables the alias and sends a push', async () => {
     aliasRow = { id: 'id-1', user_id: 'user-1', service_label: 'Netflix', bounce_count: 2 };
     const req = signedRequest({ event_type: 'bounced', alias_email: 'a@x.com', bounce_type: 'hard' });

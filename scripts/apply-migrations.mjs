@@ -21,6 +21,7 @@ const MIGRATIONS = [
   '20260304_email_events.sql',
   '20260305_autopilot_mode.sql',
   '20260306_family_invites.sql',
+  '20260605_relationship_lifecycle.sql',
 ];
 
 const here = dirname(fileURLToPath(import.meta.url));

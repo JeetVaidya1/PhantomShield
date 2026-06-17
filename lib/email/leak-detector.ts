@@ -69,6 +69,8 @@ export interface LeakCheckParams {
   serviceLabel: string;
   senderDomain: string;
   senderEmail: string;
+  /** The exact vendor host captured at signup (e.g. "netflix.com"), if known. */
+  vendorDomain?: string | null;
 }
 
 export interface LeakCheckResult {
@@ -76,23 +78,43 @@ export interface LeakCheckResult {
   reason?: string;
 }
 
+/** True when senderDomain is the vendor host or a subdomain of it. */
+function matchesVendorDomain(vendorDomain: string, senderDomain: string): boolean {
+  const vendor = vendorDomain.toLowerCase().trim();
+  const sender = senderDomain.toLowerCase().trim();
+  return sender === vendor || sender.endsWith(`.${vendor}`);
+}
+
 /**
  * Determine if an email to a labeled alias represents a potential data leak.
+ *
+ * The captured vendor_domain is authoritative when present (exact host match,
+ * no false positives from fuzzy names); otherwise we fall back to fuzzy
+ * matching against the human service label.
  */
 export function checkForLeak(params: LeakCheckParams): LeakCheckResult {
-  const { serviceLabel, senderDomain, senderEmail } = params;
+  const { serviceLabel, senderDomain, vendorDomain } = params;
 
-  // No label = can't check
-  if (!serviceLabel) {
-    return { isLeak: false };
-  }
-
-  // Infrastructure domains get a pass
+  // Infrastructure relays get a pass regardless of how we attribute.
   if (isInfrastructureDomain(senderDomain)) {
     return { isLeak: false };
   }
 
-  // Check if sender matches the labeled service
+  // Precise attribution: compare the real sender to the captured vendor host.
+  if (vendorDomain) {
+    if (matchesVendorDomain(vendorDomain, senderDomain)) {
+      return { isLeak: false };
+    }
+    return {
+      isLeak: true,
+      reason: `Email from ${senderDomain} to alias created for ${vendorDomain}`,
+    };
+  }
+
+  // Fallback: fuzzy match against the human label.
+  if (!serviceLabel) {
+    return { isLeak: false };
+  }
   if (matchesSenderDomain(serviceLabel, senderDomain)) {
     return { isLeak: false };
   }

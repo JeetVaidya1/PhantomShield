@@ -104,6 +104,9 @@ export async function POST(request: Request) {
         user_id: auth.userId!,
         alias_email: aliasEmail,
         service_label: serviceLabel,
+        // Captured vendor host (e.g. "netflix.com") — drives precise leak
+        // attribution and GDPR routing when this relationship is retired.
+        vendor_domain: parsed.data.vendor_domain ?? null,
         is_honeypot: false,
         type: 'email',
         status: 'active',
@@ -148,12 +151,15 @@ export async function GET(request: Request) {
 
     const supabase = getSupabaseServiceClient();
 
+    // Real aliases plus retired tripwires (honeypots flipped on exit), so the
+    // whole relationship lifecycle stays visible in one place. Standalone
+    // honeypots (planted, never an alias) live on the Honeypots page only.
     const { data: aliases, error } = await supabase
       .from('identities')
       .select('*')
       .eq('user_id', auth.userId!)
-      .eq('is_honeypot', false)
       .eq('type', 'email')
+      .or('is_honeypot.eq.false,status.eq.retired')
       .order('created_at', { ascending: false });
 
     if (error) {

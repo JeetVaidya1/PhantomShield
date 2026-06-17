@@ -24,6 +24,8 @@ interface AliasRow {
   id: string;
   user_id: string;
   service_label: string | null;
+  vendor_domain: string | null;
+  is_honeypot: boolean | null;
   bounce_count: number | null;
 }
 
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
     const supabase = getSupabaseServiceClient();
     const { data: alias } = await supabase
       .from('identities')
-      .select('id, user_id, service_label, bounce_count')
+      .select('id, user_id, service_label, vendor_domain, is_honeypot, bounce_count')
       .eq('alias_email', aliasEmail)
       .single();
 
@@ -110,8 +112,28 @@ async function handleForwarded(identity: AliasRow, payload: Record<string, unkno
     email_subject: (payload.subject as string | undefined) ?? null,
   });
 
+  // A retired honeypot is a tripwire: any mail it receives means the vendor
+  // ignored the deletion request or sold the address on. Catch them.
+  if (identity.is_honeypot) {
+    await supabase.from('honeypot_triggers').insert({
+      identity_id: identity.id,
+      user_id: identity.user_id,
+      trigger_from_email: senderEmail || null,
+      trigger_from_domain: senderDomain,
+      trigger_subject: (payload.subject as string | undefined) ?? null,
+    });
+    await sendPushNotification(identity.user_id, {
+      title: 'Caught one',
+      body: `${senderDomain || 'A sender'} emailed an alias you retired — they ignored your deletion request.`,
+      deepLink: 'phantomdefender://honeypots',
+      priority: 'high',
+    });
+    return;
+  }
+
   const leak = checkForLeak({
     serviceLabel: identity.service_label ?? '',
+    vendorDomain: identity.vendor_domain,
     senderDomain,
     senderEmail,
   });
@@ -120,7 +142,7 @@ async function handleForwarded(identity: AliasRow, payload: Record<string, unkno
     await supabase.from('leak_detections').insert({
       identity_id: identity.id,
       user_id: identity.user_id,
-      expected_sender: identity.service_label ?? '',
+      expected_sender: identity.vendor_domain || identity.service_label || '',
       actual_sender_domain: senderDomain,
       actual_sender_email: senderEmail || null,
     });
