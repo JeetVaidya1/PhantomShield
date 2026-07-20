@@ -4,15 +4,15 @@
 
 Phantom Defender is a privacy command center that creates disposable email aliases and burner phone numbers — then actively monitors, detects, and responds to privacy violations on your behalf. Unlike other alias services that just forward email, Phantom Defender strips trackers, catches data leaks, plants honeypot traps, automates GDPR deletion requests, and scores company privacy practices in real time.
 
-Built with zero-knowledge encryption. We couldn't read your data even if we wanted to.
+Built with client-side AES-256-GCM encryption — sensitive data is stored as encrypted blobs.
 
 ---
 
 ## At a glance
 
-- **Zero-knowledge architecture** — AES-256-GCM client-side encryption, PBKDF2 with 600K iterations. Server stores encrypted blobs and never sees plaintext.
+- **Client-side encryption** — AES-256-GCM with PBKDF2 key derivation (600K iterations); sensitive data stored as encrypted blobs. Full zero-knowledge key flow (client-derived auth key at signup) is in progress.
 - **Full stack** — Next.js 14, Supabase (PostgreSQL + RLS), Stripe, Cloudflare Email Routing, Twilio, OpenAI `gpt-4o-mini`.
-- **371 passing tests** (plus 12 for the Python tracker-stripper service) across auth, payments, email routing, encryption, digests, autopilot, and the family plan.
+- **394 automated tests** (plus 12 for the Python tracker-stripper service) across auth, payments, email routing, encryption, digests, autopilot, and the family plan.
 - **42 API route handlers**, 15 database tables, 20 Row Level Security policies.
 - **Built solo** on a 3-agent CI pipeline: a feature-builder writes, a security-auditor reviews, a test-runner gates merges.
 - **~99% gross margin** on the no-phone plan at the $9.99 price point (see Unit Economics below).
@@ -79,9 +79,9 @@ Phantom Defender is different. The alias is just the delivery mechanism. The val
 
 ## Architecture
 
-### Zero-Knowledge Encryption
+### Client-Side Encryption
 
-Phantom Defender uses a zero-knowledge architecture. Your master password never leaves your device.
+Phantom Defender's encryption layer derives keys with PBKDF2 (600K iterations) and encrypts sensitive fields with AES-256-GCM before storage. The full zero-knowledge auth flow (auth key derived client-side so the master password never reaches the server) is designed and partially wired; hardening it end-to-end is active work.
 
 1. **Signup** — You pick a username and master password. The password is split locally into an auth key (sent to Supabase, hashed again before storage) and an encryption key (stays on device, never transmitted).
 2. **Encryption** — Every piece of sensitive data (forwarding email, phone mappings, identity labels) is encrypted client-side with AES-256-GCM before it ever hits the database.
@@ -283,7 +283,7 @@ phantom-defender/
 │       ├── feature-builder.md
 │       ├── security-auditor.md
 │       └── test-runner.md
-└── __tests__/                   # 371 tests across 38 files
+└── __tests__/                   # 394 tests across 42 files
 ```
 
 ---
@@ -344,7 +344,7 @@ npm test
 npm test -- --testPathPattern="auth-crypto"
 ```
 
-371 tests across 38 test files covering all endpoints, encryption, validation, digests, autopilot, family plan, and webhook handling. The Python tracker-stripper service has its own 12-test suite (`python3 -m unittest discover -s email-server/tracker-stripper`).
+394 tests across 42 test files covering all endpoints, encryption, validation, digests, autopilot, family plan, and webhook handling. The Python tracker-stripper service has its own 12-test suite (`python3 -m unittest discover -s email-server/tracker-stripper`).
 
 ### Deployment
 
@@ -376,7 +376,7 @@ npx vercel --prod
 | Emergency nuke | Yes | No | No | Basic | No |
 | Privacy autopilot | Yes | No | No | No | No |
 | AI email summaries | Yes | No | No | No | No |
-| Zero-knowledge encryption | Yes | Partial | No | Yes | No |
+| Client-side encryption | Yes | Partial | No | Yes | No |
 | No email required to signup | Yes | No | No | No | No |
 | Android support | Yes | No | Yes | Yes | Yes |
 | Open source engine | Yes | No | Yes | No | No |
@@ -387,8 +387,8 @@ npx vercel --prod
 
 ### Completed
 - [x] V1: Core identity management (78 stories, 260+ tests)
-- [x] V2: Intelligence features (36 stories, 371 tests) — phone-provider abstraction, SimpleLogin bridge, multi-domain aliasing, email-events webhook, tracker-stripper service, email digests, in-app viewer, autopilot cron + review, family plan. (Telnyx stories v2-007/009/010 intentionally dropped — V2 standardized on Twilio.)
-- [x] Zero-knowledge auth (no email signup)
+- [x] V2: Intelligence features (36 stories; suite now at 394 tests) — phone-provider abstraction, SimpleLogin bridge, multi-domain aliasing, email-events webhook, tracker-stripper service, email digests, in-app viewer, autopilot cron + review, family plan. (Telnyx stories v2-007/009/010 intentionally dropped — V2 standardized on Twilio.)
+- [x] Client-side encryption auth flow, v1 (no email signup)
 - [x] Web app dashboard
 - [x] Stripe payments integration
 - [x] Cloudflare email routing
